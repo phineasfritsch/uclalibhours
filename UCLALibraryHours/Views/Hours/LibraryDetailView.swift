@@ -199,9 +199,9 @@ struct LibraryDetailView: View {
 
     private func isToday(dayKey: String) -> Bool {
         let formatter = DateFormatter()
-        formatter.dateFormat = "EEEE"
-        let todayName = formatter.string(from: Date())
-        return dayKey.hasPrefix(todayName)
+        formatter.dateFormat = "EEEE MMM d"
+        let todayString = formatter.string(from: Date())
+        return dayKey == todayString
     }
 
     // MARK: - Sub-Locations

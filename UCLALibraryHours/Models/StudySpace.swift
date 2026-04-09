@@ -1,5 +1,12 @@
 import Foundation
 
+// MARK: - Submission Status
+
+enum SubmissionStatus: String, Codable {
+    case pending   // submitted, awaiting community threshold
+    case approved  // visible to all
+}
+
 // MARK: - Study Space
 
 struct StudySpace: Identifiable, Codable, Hashable {
@@ -13,6 +20,9 @@ struct StudySpace: Identifiable, Codable, Hashable {
     var reviews: [SpaceReview]
     let createdAt: Date
     let createdByUserID: String
+    var isVerified: Bool
+    var photoFileNames: [String]
+    var submissionStatus: SubmissionStatus
 
     var latestReport: SpaceReport? {
         reports.sorted { $0.timestamp > $1.timestamp }.first
@@ -27,6 +37,50 @@ struct StudySpace: Identifiable, Codable, Hashable {
 
     static func == (lhs: StudySpace, rhs: StudySpace) -> Bool { lhs.id == rhs.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
+
+    // MARK: - Backwards-compatible decoding
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, building, floor, description, tags, reports, reviews
+        case createdAt, createdByUserID, isVerified, photoFileNames, submissionStatus
+    }
+
+    init(id: String, name: String, building: String, floor: String, description: String,
+         tags: [SpaceTag], reports: [SpaceReport], reviews: [SpaceReview],
+         createdAt: Date, createdByUserID: String,
+         isVerified: Bool = false, photoFileNames: [String] = [],
+         submissionStatus: SubmissionStatus = .approved) {
+        self.id = id
+        self.name = name
+        self.building = building
+        self.floor = floor
+        self.description = description
+        self.tags = tags
+        self.reports = reports
+        self.reviews = reviews
+        self.createdAt = createdAt
+        self.createdByUserID = createdByUserID
+        self.isVerified = isVerified
+        self.photoFileNames = photoFileNames
+        self.submissionStatus = submissionStatus
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        building = try c.decode(String.self, forKey: .building)
+        floor = try c.decode(String.self, forKey: .floor)
+        description = try c.decode(String.self, forKey: .description)
+        tags = try c.decode([SpaceTag].self, forKey: .tags)
+        reports = try c.decode([SpaceReport].self, forKey: .reports)
+        reviews = try c.decode([SpaceReview].self, forKey: .reviews)
+        createdAt = try c.decode(Date.self, forKey: .createdAt)
+        createdByUserID = try c.decode(String.self, forKey: .createdByUserID)
+        isVerified = try c.decodeIfPresent(Bool.self, forKey: .isVerified) ?? false
+        photoFileNames = try c.decodeIfPresent([String].self, forKey: .photoFileNames) ?? []
+        submissionStatus = try c.decodeIfPresent(SubmissionStatus.self, forKey: .submissionStatus) ?? .approved
+    }
 }
 
 // MARK: - Tags
@@ -159,6 +213,15 @@ enum NoiseLevel: String, Codable, CaseIterable, Identifiable {
         case .quiet: return "speaker.wave.1"
         case .moderate: return "speaker.wave.2"
         case .loud: return "speaker.wave.3"
+        }
+    }
+
+    /// Traffic-light color: green = acceptable, yellow = moderate, red = loud
+    var colorName: String {
+        switch self {
+        case .silent, .quiet: return "green"
+        case .moderate: return "yellow"
+        case .loud: return "red"
         }
     }
 }

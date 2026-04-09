@@ -4,15 +4,31 @@ struct StudySpacesView: View {
     @EnvironmentObject var vm: StudySpaceViewModel
     @State private var showAddSpace = false
     @State private var tagSheetVisible = false
+    @State private var selectedTab = 0        // 0 = Verified, 1 = Community
     @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
         NavigationStack {
             Group {
-                if vm.filteredSpaces.isEmpty && vm.spaces.isEmpty {
+                if vm.spaces.isEmpty {
                     emptyState
                 } else {
-                    spaceList
+                    VStack(spacing: 0) {
+                        // Verified / Community picker
+                        Picker("", selection: $selectedTab) {
+                            Label("Verified", systemImage: "checkmark.seal.fill").tag(0)
+                            Label("Community", systemImage: "person.2.fill").tag(1)
+                        }
+                        .pickerStyle(.segmented)
+                        .padding(.horizontal)
+                        .padding(.vertical, 10)
+
+                        if selectedTab == 0 {
+                            spaceList(spaces: vm.filteredVerifiedSpaces, isVerifiedTab: true)
+                        } else {
+                            spaceList(spaces: vm.filteredCommunitySpaces, isVerifiedTab: false)
+                        }
+                    }
                 }
             }
             .navigationTitle("Study Spaces")
@@ -21,24 +37,30 @@ struct StudySpacesView: View {
                     filterButton
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showAddSpace = true
-                    } label: {
-                        Image(systemName: "plus")
+                    if selectedTab == 1 {
+                        Button {
+                            showAddSpace = true
+                        } label: {
+                            Image(systemName: "plus")
+                        }
                     }
                 }
             }
             .searchable(text: $vm.searchText, prompt: "Search spaces")
             .sheet(isPresented: $showAddSpace) {
                 AddSpaceView()
+                    .onDisappear { vm.loadSpaces() }
+            }
+            .navigationDestination(for: StudySpace.self) { space in
+                SpaceDetailView(space: space)
             }
         }
         .onAppear { vm.loadSpaces() }
     }
 
-    // MARK: - Subviews
+    // MARK: - Space List
 
-    private var spaceList: some View {
+    private func spaceList(spaces: [StudySpace], isVerifiedTab: Bool) -> some View {
         ScrollView {
             // Active tag filters
             if !vm.selectedTags.isEmpty {
@@ -52,25 +74,29 @@ struct StudySpacesView: View {
                     }
                     .padding(.horizontal)
                 }
-                .padding(.top, 8)
+                .padding(.top, 4)
             }
 
-            LazyVStack(spacing: 12) {
-                ForEach(vm.filteredSpaces) { space in
-                    NavigationLink(value: space) {
-                        SpaceCard(space: space)
-                            .padding(.horizontal)
+            if spaces.isEmpty {
+                noResultsState(isVerifiedTab: isVerifiedTab)
+                    .padding(.top, 60)
+            } else {
+                LazyVStack(spacing: 12) {
+                    ForEach(spaces) { space in
+                        NavigationLink(value: space) {
+                            SpaceCard(space: space)
+                                .padding(.horizontal)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
+                .padding(.top, 12)
+                .padding(.bottom, 32)
             }
-            .padding(.top, 12)
-            .padding(.bottom, 32)
-        }
-        .navigationDestination(for: StudySpace.self) { space in
-            SpaceDetailView(space: space)
         }
     }
+
+    // MARK: - Filter Button
 
     private var filterButton: some View {
         Button {
@@ -93,6 +119,8 @@ struct StudySpacesView: View {
         }
     }
 
+    // MARK: - Empty / No Results States
+
     private var emptyState: some View {
         VStack(spacing: 20) {
             Image(systemName: "location.magnifyingglass")
@@ -111,6 +139,26 @@ struct StudySpacesView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+
+    private func noResultsState(isVerifiedTab: Bool) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: isVerifiedTab ? "checkmark.seal" : "person.2")
+                .font(.system(size: 44))
+                .foregroundStyle(.secondary)
+            Text(isVerifiedTab
+                 ? "No verified spaces match your filters."
+                 : "No community spaces yet.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            if !isVerifiedTab {
+                Button("Add the First One") { showAddSpace = true }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.uclaBlue)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
 }
 
 // MARK: - Space Card
@@ -123,10 +171,18 @@ struct SpaceCard: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(space.name)
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                        .lineLimit(2)
+                    HStack(spacing: 6) {
+                        Text(space.name)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                            .lineLimit(2)
+
+                        if space.isVerified {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.caption)
+                                .foregroundStyle(.uclaBlue)
+                        }
+                    }
 
                     Label("\(space.building)\(space.floor.isEmpty ? "" : ", \(space.floor)")", systemImage: "building.2")
                         .font(.caption)
@@ -169,7 +225,7 @@ struct SpaceCard: View {
                         }
                     }
 
-                    // Latest crowd report
+                    // Latest crowd + noise report
                     if let report = space.latestReport, report.isRecent {
                         HStack(spacing: 4) {
                             Image(systemName: report.crowdLevel.systemImage)
@@ -181,6 +237,15 @@ struct SpaceCard: View {
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(crowdColor(report.crowdLevel).opacity(0.1), in: Capsule())
+
+                        // Noise level traffic light
+                        HStack(spacing: 4) {
+                            Image(systemName: report.noiseLevel.systemImage)
+                                .font(.caption2)
+                            Text(report.noiseLevel.displayName)
+                                .font(.caption2.bold())
+                        }
+                        .foregroundStyle(noiseColor(report.noiseLevel))
 
                         Text(report.timeAgo)
                             .font(.caption2)
@@ -203,6 +268,14 @@ struct SpaceCard: View {
         case .moderate: return .yellow
         case .busy: return .orange
         case .full: return .red
+        }
+    }
+
+    private func noiseColor(_ level: NoiseLevel) -> Color {
+        switch level {
+        case .silent, .quiet: return .green
+        case .moderate: return .yellow
+        case .loud: return .red
         }
     }
 }

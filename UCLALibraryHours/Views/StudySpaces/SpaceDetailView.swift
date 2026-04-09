@@ -18,6 +18,11 @@ struct SpaceDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                // Photo carousel (if photos exist)
+                if !localSpace.photoFileNames.isEmpty {
+                    photoCarousel
+                }
+
                 // Location & description
                 headerSection
 
@@ -34,7 +39,6 @@ struct SpaceDetailView: View {
                 // Report button
                 reportButton
 
-                // Divider
                 Divider()
                     .padding(.horizontal)
 
@@ -43,20 +47,22 @@ struct SpaceDetailView: View {
 
                 Spacer(minLength: 32)
             }
-            .padding(.top, 16)
+            .padding(.top, localSpace.photoFileNames.isEmpty ? 16 : 0)
         }
         .navigationTitle(localSpace.name)
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button(role: .destructive) {
-                        vm.deleteSpace(id: localSpace.id)
+                if !localSpace.isVerified {
+                    Menu {
+                        Button(role: .destructive) {
+                            vm.deleteSpace(id: localSpace.id)
+                        } label: {
+                            Label("Remove Space", systemImage: "trash")
+                        }
                     } label: {
-                        Label("Remove Space", systemImage: "trash")
+                        Image(systemName: "ellipsis.circle")
                     }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
                 }
             }
         }
@@ -77,7 +83,37 @@ struct SpaceDetailView: View {
         }
     }
 
-    // MARK: - Subviews
+    // MARK: - Photo Carousel
+
+    private var photoCarousel: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 0) {
+                ForEach(localSpace.photoFileNames, id: \.self) { filename in
+                    let image = StudySpaceService.shared.loadPhoto(filename: filename)
+                    Group {
+                        if let img = image {
+                            Image(uiImage: img)
+                                .resizable()
+                                .scaledToFill()
+                        } else {
+                            Color(.systemGray5)
+                                .overlay {
+                                    Image(systemName: "photo")
+                                        .foregroundStyle(.secondary)
+                                }
+                        }
+                    }
+                    .frame(width: UIScreen.main.bounds.width, height: 260)
+                    .clipped()
+                }
+            }
+        }
+        .scrollTargetBehavior(.paging)
+        .frame(height: 260)
+        .ignoresSafeArea(edges: .horizontal)
+    }
+
+    // MARK: - Header
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -87,6 +123,15 @@ struct SpaceDetailView: View {
                 Text("\(localSpace.building)\(localSpace.floor.isEmpty ? "" : " · \(localSpace.floor)")")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+
+                if localSpace.isVerified {
+                    Label("Verified", systemImage: "checkmark.seal.fill")
+                        .font(.caption.bold())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.uclaBlue, in: Capsule())
+                }
 
                 Spacer()
 
@@ -113,6 +158,8 @@ struct SpaceDetailView: View {
         }
     }
 
+    // MARK: - Crowd Report Card
+
     private func crowdReportCard(_ report: SpaceReport) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -131,11 +178,12 @@ struct SpaceDetailView: View {
                     value: report.crowdLevel.displayName,
                     color: crowdColor(report.crowdLevel)
                 )
+                // Noise with traffic-light color
                 ReportStatItem(
                     icon: report.noiseLevel.systemImage,
                     label: "Noise",
                     value: report.noiseLevel.displayName,
-                    color: .primary
+                    color: noiseColor(report.noiseLevel)
                 )
                 ReportStatItem(
                     icon: "bolt.fill",
@@ -150,6 +198,9 @@ struct SpaceDetailView: View {
                     color: .primary
                 )
             }
+
+            // Noise level traffic light indicator
+            noiseLevelBar(report.noiseLevel)
         }
         .padding(16)
         .background {
@@ -159,6 +210,36 @@ struct SpaceDetailView: View {
         }
         .padding(.horizontal)
     }
+
+    private func noiseLevelBar(_ level: NoiseLevel) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Noise Level")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 4) {
+                ForEach(NoiseLevel.allCases) { lvl in
+                    let isActive = lvl == level || NoiseLevel.allCases.firstIndex(of: lvl)! <= NoiseLevel.allCases.firstIndex(of: level)!
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(isActive ? noiseColor(level) : Color(.systemGray5))
+                        .frame(height: 8)
+                }
+
+                Spacer(minLength: 8)
+
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(noiseColor(level))
+                        .frame(width: 8, height: 8)
+                    Text(level.displayName)
+                        .font(.caption.bold())
+                        .foregroundStyle(noiseColor(level))
+                }
+            }
+        }
+    }
+
+    // MARK: - Tags
 
     private var tagsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -182,6 +263,8 @@ struct SpaceDetailView: View {
         }
     }
 
+    // MARK: - Report Button
+
     private var reportButton: some View {
         Button {
             showReport = true
@@ -202,6 +285,8 @@ struct SpaceDetailView: View {
         }
         .buttonStyle(.plain)
     }
+
+    // MARK: - Reviews
 
     private var reviewsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -224,10 +309,11 @@ struct SpaceDetailView: View {
                     .padding(.horizontal)
                     .padding(.vertical, 8)
             } else {
+                let sorted = localSpace.reviews.sorted { $0.timestamp > $1.timestamp }
                 VStack(spacing: 0) {
-                    ForEach(localSpace.reviews.sorted { $0.timestamp > $1.timestamp }) { review in
+                    ForEach(sorted) { review in
                         ReviewRow(review: review)
-                        if review.id != localSpace.reviews.sorted { $0.timestamp > $1.timestamp }.last?.id {
+                        if review.id != sorted.last?.id {
                             Divider()
                                 .padding(.leading, 16)
                         }
@@ -243,12 +329,22 @@ struct SpaceDetailView: View {
         }
     }
 
+    // MARK: - Color Helpers
+
     private func crowdColor(_ level: CrowdLevel) -> Color {
         switch level {
         case .empty, .light: return .green
         case .moderate: return .yellow
         case .busy: return .orange
         case .full: return .red
+        }
+    }
+
+    private func noiseColor(_ level: NoiseLevel) -> Color {
+        switch level {
+        case .silent, .quiet: return .green
+        case .moderate: return .yellow
+        case .loud: return .red
         }
     }
 }

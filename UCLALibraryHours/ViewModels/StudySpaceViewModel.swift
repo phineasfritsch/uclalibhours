@@ -3,28 +3,30 @@ import Combine
 
 @MainActor
 final class StudySpaceViewModel: ObservableObject {
-    @Published var spaces: [StudySpace] = []
+    @Published var spaces: [StudySpace] = []          // all spaces (verified + community)
     @Published var searchText = ""
     @Published var selectedTags: Set<SpaceTag> = []
 
+    var verifiedSpaces: [StudySpace] { spaces.filter(\.isVerified) }
+    var communitySpaces: [StudySpace] { spaces.filter { !$0.isVerified } }
+
+    var filteredVerifiedSpaces: [StudySpace] {
+        filter(verifiedSpaces)
+    }
+
+    var filteredCommunitySpaces: [StudySpace] {
+        filter(communitySpaces)
+    }
+
+    /// Legacy accessor — returns all filtered spaces (used by shared SpaceCard/NavigationDestination)
     var filteredSpaces: [StudySpace] {
-        var result = spaces
-        if !searchText.isEmpty {
-            result = result.filter {
-                $0.name.localizedCaseInsensitiveContains(searchText) ||
-                $0.building.localizedCaseInsensitiveContains(searchText) ||
-                $0.description.localizedCaseInsensitiveContains(searchText)
-            }
-        }
-        if !selectedTags.isEmpty {
-            result = result.filter { space in
-                selectedTags.isSubset(of: Set(space.tags))
-            }
-        }
-        return result
+        filter(spaces)
     }
 
     var userID: String { StudySpaceService.shared.anonymousUserID }
+
+    var canSubmitSpace: Bool { StudySpaceService.shared.canSubmitSpace() }
+    var remainingSubmissions: Int { StudySpaceService.shared.remainingSubmissions() }
 
     // MARK: - Load
 
@@ -57,5 +59,22 @@ final class StudySpaceViewModel: ObservableObject {
     func deleteSpace(id: String) {
         StudySpaceService.shared.deleteSpace(id: id)
         spaces.removeAll { $0.id == id }
+    }
+
+    // MARK: - Private
+
+    private func filter(_ source: [StudySpace]) -> [StudySpace] {
+        var result = source
+        if !searchText.isEmpty {
+            result = result.filter {
+                $0.name.localizedCaseInsensitiveContains(searchText) ||
+                $0.building.localizedCaseInsensitiveContains(searchText) ||
+                $0.description.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+        if !selectedTags.isEmpty {
+            result = result.filter { selectedTags.isSubset(of: Set($0.tags)) }
+        }
+        return result
     }
 }

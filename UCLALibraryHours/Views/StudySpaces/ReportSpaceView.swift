@@ -136,7 +136,7 @@ struct NoisePicker: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
-                    .background(selection == level ? Color.uclaBlue : Color.clear)
+                    .background(selection == level ? noiseColor(level) : Color.clear)
                     .foregroundStyle(selection == level ? .white : .secondary)
                 }
                 .buttonStyle(.plain)
@@ -144,6 +144,14 @@ struct NoisePicker: View {
         }
         .background(Color(.systemGray5), in: RoundedRectangle(cornerRadius: 10))
         .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func noiseColor(_ level: NoiseLevel) -> Color {
+        switch level {
+        case .silent, .quiet: return .green
+        case .moderate: return .yellow
+        case .loud: return .red
+        }
     }
 }
 
