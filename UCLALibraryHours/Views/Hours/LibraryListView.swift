@@ -2,10 +2,6 @@ import SwiftUI
 
 struct LibraryListView: View {
     @EnvironmentObject var vm: LibraryHoursViewModel
-    let onUnlockAttempt: () -> Void
-
-    @State private var tapCount = 0
-    @State private var tapResetTask: Task<Void, Never>?
 
     var body: some View {
         NavigationStack {
@@ -44,7 +40,6 @@ struct LibraryListView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .onTapGesture { handleTitleTap() }
     }
 
     private var filterButton: some View {
@@ -160,22 +155,6 @@ struct LibraryListView: View {
             .tint(Color.uclaBlue)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    // MARK: - Secret unlock (tap title 5× within 3 s)
-
-    private func handleTitleTap() {
-        tapResetTask?.cancel()
-        tapCount += 1
-        if tapCount >= 5 {
-            tapCount = 0
-            onUnlockAttempt()
-            return
-        }
-        tapResetTask = Task {
-            try? await Task.sleep(for: .seconds(3))
-            if !Task.isCancelled { tapCount = 0 }
-        }
     }
 
     private var formattedDate: String {
