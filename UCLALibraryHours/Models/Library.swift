@@ -158,6 +158,12 @@ struct Library: Identifiable, Hashable {
         Library(lid: lid, name: name, color: color,
                 allWeekHours: allWeekHours, subLocations: subs)
     }
+
+    /// Returns a copy of this library with a different display name.
+    func withName(_ newName: String) -> Library {
+        Library(lid: lid, name: newName, color: color,
+                allWeekHours: allWeekHours, subLocations: subLocations)
+    }
 }
 
 enum OpenStatus {

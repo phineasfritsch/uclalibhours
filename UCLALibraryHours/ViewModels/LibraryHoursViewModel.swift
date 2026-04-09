@@ -10,56 +10,78 @@ final class LibraryHoursViewModel: ObservableObject {
     @Published var searchText = ""
     @Published var showOpenOnly = false
 
-    // MARK: - Ordered main-library LIDs (user-defined display order)
-    //
-    //  4690  Arts Library
-    //  2081  Biomedical Library
-    //  4694  Law Library
-    //  3280  Rosenfeld Management Library
-    //  4696  Music Library
-    //  2572  Powell Library
-    //  1916  YRL / Research Library (Charles E. Young)  ← EAS merged in
-    //  4702  SEL/Boelter
-    //  4703  SEL/Geology                                ← promoted to top-level
-    //  4707  SRLF
+    // MARK: - Display order for the 10 main branches
+
     private let mainLibraryOrder: [Int] = [
-        4690, 2081, 4694, 3280, 4696, 2572, 1916, 4702, 4703, 4707
+        4690,   // Arts Library
+        2081,   // Biomedical Library
+        4694,   // Law Library
+        3280,   // Rosenfeld Management Library
+        4696,   // Music Library
+        2572,   // Powell Library
+        1916,   // Young Research Library (YRL)
+        4702,   // SEL/Boelter
+        4703,   // SEL/Geology
+        4707    // SRLF
     ]
 
-    // MARK: - Restructured, unfiltered list of the 10 branches
+    // MARK: - Hardcoded parent → children LID map
     //
-    // Separated from `groupedLibraries` so that openCount/totalCount are
-    // always accurate regardless of active search or open-only filters.
+    // The LibCal API returns ALL locations flat (no actual sub_locations nesting),
+    // so we define the groupings manually here.
+    //
+    // East Asian Library (4693) is intentionally omitted — YRL IS the East Asian
+    // Library and they display as a single entry.
+
+    private let childrenOf: [Int: [Int]] = [
+        4690: [20525],                    // Arts Library → Reference Desk
+        2081: [2082, 24794, 3291],        // Biomedical → Grad Reading Room, Collab Hub, Equipment Lending
+        4694: [4695],                     // Law → Reference Desk
+        3280: [],                         // Rosenfeld → none
+        4696: [22392],                    // Music → Research Help Desk
+        2572: [4699, 20241, 2609, 2607],  // Powell → Night Powell, Help Desk, CLICC Lab, CLICC Classrooms
+        1916: [2614, 2083, 20242],        // YRL → CLICC Equipment Lending, Special Collections, Help Desk
+        4702: [4705],                     // SEL/Boelter → Equipment Lending (Boelter)
+        4703: [4706],                     // SEL/Geology → Equipment Lending (Geo)
+        4707: []                          // SRLF → none
+    ]
+
+    // MARK: - Restructured unfiltered list of the 10 branches
+    //
+    // Kept separate from groupedLibraries so openCount is always accurate
+    // regardless of active search / open-only filters.
 
     private var restructuredLibraries: [Library] {
-        var byLid: [Int: Library] = Dictionary(
-            uniqueKeysWithValues: libraries.map { ($0.lid, $0) }
-        )
-
-        // 1. Move East Asian Library (4693) under YRL (1916)
-        if let eas = byLid[4693], let yrl = byLid[1916] {
-            byLid[1916] = yrl.withAdditionalSubLocation(eas)
-            byLid.removeValue(forKey: 4693)
-        }
-
-        // 2. Promote SEL/Geology (4703) out of SEL/Boelter's sub-locations
-        //    and give it Equipment Lending SEL/Geo (4706) as its own sub.
-        if let boelter = byLid[4702] {
-            var boelterSubs = boelter.subLocations
-
-            if let geoIdx = boelterSubs.firstIndex(where: { $0.lid == 4703 }) {
-                var geology = boelterSubs.remove(at: geoIdx)
-
-                if let equipIdx = boelterSubs.firstIndex(where: { $0.lid == 4706 }) {
-                    geology = geology.withAdditionalSubLocation(boelterSubs.remove(at: equipIdx))
-                }
-
-                byLid[4702] = boelter.withSubLocations(boelterSubs)
-                byLid[4703] = geology
+        // Flatten the API response into a single lid → Library lookup.
+        // This handles both a fully-flat API and one that nests some subs already.
+        var byLid: [Int: Library] = [:]
+        for lib in libraries {
+            byLid[lib.lid] = lib
+            for sub in lib.subLocations {
+                byLid[sub.lid] = sub
             }
         }
 
-        // 3. Return exactly the 10 branches in order, ignoring everything else
+        // Drop East Asian Library — YRL represents both locations as one entry
+        byLid.removeValue(forKey: 4693)
+
+        // Re-parent each child into its main library.
+        // Skips duplicates if the API already nested them.
+        for (parentLid, childLids) in childrenOf {
+            guard let parent = byLid[parentLid] else { continue }
+            let existingSubs = Set(parent.subLocations.map { $0.lid })
+            let newChildren = childLids.compactMap { byLid[$0] }
+                                       .filter { !existingSubs.contains($0.lid) }
+            guard !newChildren.isEmpty else { continue }
+            byLid[parentLid] = parent.withSubLocations(parent.subLocations + newChildren)
+        }
+
+        // Rename YRL to something readable
+        if let yrl = byLid[1916] {
+            byLid[1916] = yrl.withName("Young Research Library (YRL)")
+        }
+
+        // Return exactly the 10 branches in the defined order
         return mainLibraryOrder.compactMap { byLid[$0] }
     }
 
@@ -68,7 +90,7 @@ final class LibraryHoursViewModel: ObservableObject {
     var groupedLibraries: [Library] {
         var list = restructuredLibraries
 
-        // Open-only: keep branch if it or any sub-location is open
+        // Open-only: keep if the branch itself or any sub-location is open
         if showOpenOnly {
             list = list.filter {
                 $0.openStatus.isAccessible ||
@@ -87,7 +109,7 @@ final class LibraryHoursViewModel: ObservableObject {
         return list
     }
 
-    // Always reflects the true count across all 10 branches, filter-independent
+    // Always reflects the true open count across all 10 branches
     var openCount: Int { restructuredLibraries.filter { $0.openStatus.isAccessible }.count }
     var totalCount: Int { mainLibraryOrder.count }
 
