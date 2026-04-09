@@ -86,29 +86,26 @@ struct SpaceDetailView: View {
     // MARK: - Photo Carousel
 
     private var photoCarousel: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 0) {
-                ForEach(localSpace.photoFileNames, id: \.self) { filename in
-                    let image = StudySpaceService.shared.loadPhoto(filename: filename)
-                    Group {
-                        if let img = image {
-                            Image(uiImage: img)
-                                .resizable()
-                                .scaledToFill()
-                        } else {
-                            Color(.systemGray5)
-                                .overlay {
-                                    Image(systemName: "photo")
-                                        .foregroundStyle(.secondary)
-                                }
-                        }
+        TabView {
+            ForEach(localSpace.photoFileNames, id: \.self) { filename in
+                let image = StudySpaceService.shared.loadPhoto(filename: filename)
+                Group {
+                    if let img = image {
+                        Image(uiImage: img)
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        Color(.systemGray5)
+                            .overlay {
+                                Image(systemName: "photo")
+                                    .foregroundStyle(.secondary)
+                            }
                     }
-                    .frame(width: UIScreen.main.bounds.width, height: 260)
-                    .clipped()
                 }
+                .clipped()
             }
         }
-        .scrollTargetBehavior(.paging)
+        .tabViewStyle(.page(indexDisplayMode: localSpace.photoFileNames.count > 1 ? .always : .never))
         .frame(height: 260)
         .ignoresSafeArea(edges: .horizontal)
     }
