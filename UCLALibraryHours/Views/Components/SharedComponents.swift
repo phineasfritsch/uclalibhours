@@ -3,10 +3,8 @@ import SwiftUI
 // MARK: - Colors
 
 extension Color {
-    static let uclaBlue = Color(red: 0.043, green: 0.416, blue: 0.718)
     static let uclaGold = Color(red: 1.0, green: 0.843, blue: 0.0)
 }
-
 
 // MARK: - Status Badge
 
