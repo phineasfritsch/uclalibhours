@@ -149,13 +149,14 @@ struct Library: Identifiable, Hashable {
 
     /// Returns a copy of this library with an additional sub-location appended.
     func withAdditionalSubLocation(_ sub: Library) -> Library {
-        Library(
-            lid: lid,
-            name: name,
-            color: color,
-            allWeekHours: allWeekHours,
-            subLocations: subLocations + [sub]
-        )
+        Library(lid: lid, name: name, color: color,
+                allWeekHours: allWeekHours, subLocations: subLocations + [sub])
+    }
+
+    /// Returns a copy of this library with a completely replaced sub-location list.
+    func withSubLocations(_ subs: [Library]) -> Library {
+        Library(lid: lid, name: name, color: color,
+                allWeekHours: allWeekHours, subLocations: subs)
     }
 }
 
