@@ -309,7 +309,7 @@ struct AddReviewView: View {
     let spaceID: String
 
     @State private var rating = 3
-    @State private var body = ""
+    @State private var reviewText = ""
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
@@ -328,7 +328,7 @@ struct AddReviewView: View {
                 }
 
                 Section("Comments (optional)") {
-                    TextEditor(text: $body)
+                    TextEditor(text: $reviewText)
                         .frame(minHeight: 100)
                 }
             }
@@ -344,7 +344,7 @@ struct AddReviewView: View {
                             id: UUID().uuidString,
                             userID: vm.userID,
                             rating: rating,
-                            body: body,
+                            body: reviewText,
                             timestamp: Date()
                         )
                         vm.submitReview(review, to: spaceID)

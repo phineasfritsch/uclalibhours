@@ -7,9 +7,6 @@ extension Color {
     static let uclaGold = Color(red: 1.0, green: 0.843, blue: 0.0)
 }
 
-extension ShapeStyle where Self == Color {
-    static var uclaBlue: Color { .uclaBlue }
-}
 
 // MARK: - Status Badge
 
