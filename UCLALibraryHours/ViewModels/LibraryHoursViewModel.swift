@@ -10,15 +10,36 @@ final class LibraryHoursViewModel: ObservableObject {
     @Published var searchText = ""
     @Published var showOpenOnly = false
 
-    var filteredLibraries: [Library] {
-        var result = libraries
+    /// Libraries organised into the 10 main branches, with East Asian Library
+    /// moved under YRL (Research Library, Charles E. Young, lid 1916).
+    var groupedLibraries: [Library] {
+        var list = libraries
+
+        // East Asian Library (lid 4693) is top-level in the API but belongs under YRL
+        if let easIdx = list.firstIndex(where: { $0.lid == 4693 }) {
+            let eas = list.remove(at: easIdx)
+            if let yrlIdx = list.firstIndex(where: { $0.lid == 1916 }) {
+                list[yrlIdx] = list[yrlIdx].withAdditionalSubLocation(eas)
+            }
+        }
+
+        // Open-only filter: keep if the branch itself OR any sub-location is open
         if showOpenOnly {
-            result = result.filter { $0.openStatus.isAccessible }
+            list = list.filter {
+                $0.openStatus.isAccessible ||
+                $0.subLocations.contains { $0.openStatus.isAccessible }
+            }
         }
+
+        // Search: match branch name OR any sub-location name
         if !searchText.isEmpty {
-            result = result.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+            list = list.filter {
+                $0.name.localizedCaseInsensitiveContains(searchText) ||
+                $0.subLocations.contains { $0.name.localizedCaseInsensitiveContains(searchText) }
+            }
         }
-        return result
+
+        return list
     }
 
     var openCount: Int { libraries.filter { $0.openStatus.isAccessible }.count }

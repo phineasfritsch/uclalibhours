@@ -33,7 +33,7 @@ struct LibraryListView: View {
         .task { await vm.loadHours() }
     }
 
-    // MARK: - Subviews
+    // MARK: - Toolbar items
 
     private var titleButton: some View {
         VStack(spacing: 2) {
@@ -44,9 +44,7 @@ struct LibraryListView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .onTapGesture {
-            handleTitleTap()
-        }
+        .onTapGesture { handleTitleTap() }
     }
 
     private var filterButton: some View {
@@ -57,30 +55,30 @@ struct LibraryListView: View {
         } label: {
             Label(
                 vm.showOpenOnly ? "All" : "Open",
-                systemImage: vm.showOpenOnly ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle"
+                systemImage: vm.showOpenOnly
+                    ? "line.3.horizontal.decrease.circle.fill"
+                    : "line.3.horizontal.decrease.circle"
             )
             .labelStyle(.iconOnly)
-            .foregroundStyle(vm.showOpenOnly ? .uclaBlue : .secondary)
+            .foregroundStyle(vm.showOpenOnly ? Color.uclaBlue : .secondary)
         }
     }
 
+    // MARK: - Main list
+
     private var libraryList: some View {
         ScrollView {
-            LazyVStack(spacing: 12) {
-                // Status summary banner
+            LazyVStack(spacing: 10) {
+
                 if !vm.isLoading {
                     statusBanner
                         .padding(.horizontal)
                         .padding(.top, 4)
                 }
 
-                // Library cards
-                ForEach(vm.filteredLibraries) { library in
-                    NavigationLink(value: library) {
-                        LibraryCard(library: library)
-                            .padding(.horizontal)
-                    }
-                    .buttonStyle(.plain)
+                ForEach(vm.groupedLibraries) { library in
+                    ExpandableLibraryCard(library: library)
+                        .padding(.horizontal)
                 }
 
                 if let updated = vm.lastUpdated {
@@ -101,8 +99,7 @@ struct LibraryListView: View {
                 VStack {
                     Spacer()
                     HStack(spacing: 8) {
-                        ProgressView()
-                            .scaleEffect(0.8)
+                        ProgressView().scaleEffect(0.8)
                         Text("Refreshing…")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -116,6 +113,8 @@ struct LibraryListView: View {
         }
     }
 
+    // MARK: - Status banner
+
     private var statusBanner: some View {
         HStack(spacing: 6) {
             Circle()
@@ -128,10 +127,11 @@ struct LibraryListView: View {
         }
     }
 
+    // MARK: - Loading / Error
+
     private var loadingView: some View {
         VStack(spacing: 16) {
-            ProgressView()
-                .scaleEffect(1.3)
+            ProgressView().scaleEffect(1.3)
             Text("Loading library hours…")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -157,23 +157,21 @@ struct LibraryListView: View {
                 Task { await vm.refresh() }
             }
             .buttonStyle(.borderedProminent)
-            .tint(.uclaBlue)
+            .tint(Color.uclaBlue)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - Secret Unlock (tap title 5 times within 3s)
+    // MARK: - Secret unlock (tap title 5× within 3 s)
 
     private func handleTitleTap() {
         tapResetTask?.cancel()
         tapCount += 1
-
         if tapCount >= 5 {
             tapCount = 0
             onUnlockAttempt()
             return
         }
-
         tapResetTask = Task {
             try? await Task.sleep(for: .seconds(3))
             if !Task.isCancelled { tapCount = 0 }
@@ -185,73 +183,110 @@ struct LibraryListView: View {
     }
 }
 
-// MARK: - Library Card
+// MARK: - Expandable Library Card
 
-struct LibraryCard: View {
+struct ExpandableLibraryCard: View {
     let library: Library
     @Environment(\.colorScheme) var colorScheme
+    @State private var isExpanded = false
+
+    private var hasSubs: Bool { !library.subLocations.isEmpty }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header row
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(library.name)
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
 
-                    Text(library.statusText)
-                        .font(.subheadline)
-                        .foregroundStyle(library.openStatus.isAccessible ? Color.primary : Color.secondary)
+            // ── Header row ──────────────────────────────────────────────────
+            HStack(alignment: .center, spacing: 10) {
+
+                // Name + today's hours  →  navigates to detail
+                NavigationLink(value: library) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(library.name)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                            .multilineTextAlignment(.leading)
+                        Text(library.statusText)
+                            .font(.subheadline)
+                            .foregroundStyle(
+                                library.openStatus.isAccessible ? .primary : .secondary
+                            )
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-
-                Spacer()
+                .buttonStyle(.plain)
 
                 StatusBadge(status: library.openStatus)
+
+                // Chevron toggle (only when there are sub-locations)
+                if hasSubs {
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                            isExpanded.toggle()
+                        }
+                    } label: {
+                        Image(systemName: "chevron.down")
+                            .font(.caption.bold())
+                            .foregroundStyle(.secondary)
+                            .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                            .frame(width: 28, height: 28)
+                            .background(Color(.systemGray5), in: Circle())
+                    }
+                }
             }
             .padding(.horizontal, 16)
-            .padding(.top, 14)
-            .padding(.bottom, 12)
+            .padding(.vertical, 14)
 
-            // Sub-locations (if any, up to 3)
-            if !library.subLocations.isEmpty {
+            // ── Sub-locations (revealed on expand) ─────────────────────────
+            if isExpanded && hasSubs {
                 Divider()
                     .padding(.horizontal, 16)
 
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(library.subLocations.prefix(3)) { sub in
-                        HStack {
-                            Text(sub.name)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Text(sub.statusText)
-                                .font(.caption)
-                                .foregroundStyle(sub.openStatus.isAccessible ? .primary : .tertiary)
+                ForEach(Array(library.subLocations.enumerated()), id: \.element.id) { idx, sub in
+                    NavigationLink(value: sub) {
+                        HStack(spacing: 10) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(sub.name)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.primary)
+                                    .multilineTextAlignment(.leading)
+                                Text(sub.statusText)
+                                    .font(.caption)
+                                    .foregroundStyle(
+                                        sub.openStatus.isAccessible ? .primary : .secondary
+                                    )
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                            StatusBadge(status: sub.openStatus, size: .small)
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption2.bold())
+                                .foregroundStyle(.tertiary)
                         }
                         .padding(.horizontal, 16)
-                        .padding(.vertical, 6)
+                        .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.plain)
 
-                        if sub.id != library.subLocations.prefix(3).last?.id {
-                            Divider()
-                                .padding(.leading, 16)
-                        }
+                    if idx < library.subLocations.count - 1 {
+                        Divider()
+                            .padding(.leading, 32)
                     }
                 }
-                .padding(.bottom, 8)
+
+                Spacer(minLength: 6)
             }
         }
-        .background {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(colorScheme == .dark ? Color(.systemGray6) : .white)
-                .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 2)
-        }
+        // Clip content to the card shape, then apply shadow outside the clip
+        .background(colorScheme == .dark ? Color(.systemGray6) : .white)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .shadow(color: .black.opacity(0.07), radius: 8, x: 0, y: 2)
         .overlay {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(
-                    library.openStatus.isAccessible ? Color.uclaBlue.opacity(0.15) : Color.clear,
+                    library.openStatus.isAccessible
+                        ? Color.uclaBlue.opacity(0.18)
+                        : Color.clear,
                     lineWidth: 1
                 )
         }

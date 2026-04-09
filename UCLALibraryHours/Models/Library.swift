@@ -146,6 +146,17 @@ struct Library: Identifiable, Hashable {
 
     static func == (lhs: Library, rhs: Library) -> Bool { lhs.lid == rhs.lid }
     func hash(into hasher: inout Hasher) { hasher.combine(lid) }
+
+    /// Returns a copy of this library with an additional sub-location appended.
+    func withAdditionalSubLocation(_ sub: Library) -> Library {
+        Library(
+            lid: lid,
+            name: name,
+            color: color,
+            allWeekHours: allWeekHours,
+            subLocations: subLocations + [sub]
+        )
+    }
 }
 
 enum OpenStatus {
