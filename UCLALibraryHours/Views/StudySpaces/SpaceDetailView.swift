@@ -6,20 +6,21 @@ struct SpaceDetailView: View {
 
     @State private var showReport = false
     @State private var showAddReview = false
-    @State private var localSpace: StudySpace
-
-    init(space: StudySpace) {
-        self.space = space
-        _localSpace = State(initialValue: space)
-    }
 
     @Environment(\.colorScheme) var colorScheme
+
+    /// Always reads the latest version of this space from the ViewModel.
+    /// Because vm.spaces is @Published, any mutation (review, report, delete)
+    /// automatically re-renders this view without any manual sync needed.
+    private var currentSpace: StudySpace {
+        vm.spaces.first(where: { $0.id == space.id }) ?? space
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // Photo carousel (if photos exist)
-                if !localSpace.photoFileNames.isEmpty {
+                if !currentSpace.photoFileNames.isEmpty {
                     photoCarousel
                 }
 
@@ -27,12 +28,12 @@ struct SpaceDetailView: View {
                 headerSection
 
                 // Latest crowd report
-                if let report = localSpace.latestReport {
+                if let report = currentSpace.latestReport {
                     crowdReportCard(report)
                 }
 
                 // Tags
-                if !localSpace.tags.isEmpty {
+                if !currentSpace.tags.isEmpty {
                     tagsSection
                 }
 
@@ -47,16 +48,16 @@ struct SpaceDetailView: View {
 
                 Spacer(minLength: 32)
             }
-            .padding(.top, localSpace.photoFileNames.isEmpty ? 16 : 0)
+            .padding(.top, currentSpace.photoFileNames.isEmpty ? 16 : 0)
         }
-        .navigationTitle(localSpace.name)
+        .navigationTitle(currentSpace.name)
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                if !localSpace.isVerified {
+                if !currentSpace.isVerified {
                     Menu {
                         Button(role: .destructive) {
-                            vm.deleteSpace(id: localSpace.id)
+                            vm.deleteSpace(id: currentSpace.id)
                         } label: {
                             Label("Remove Space", systemImage: "trash")
                         }
@@ -67,19 +68,10 @@ struct SpaceDetailView: View {
             }
         }
         .sheet(isPresented: $showReport) {
-            ReportSpaceView(spaceID: localSpace.id)
-                .onDisappear { syncLocalSpace() }
+            ReportSpaceView(spaceID: currentSpace.id)
         }
         .sheet(isPresented: $showAddReview) {
-            AddReviewView(spaceID: localSpace.id)
-                .onDisappear { syncLocalSpace() }
-        }
-        .onAppear { syncLocalSpace() }
-    }
-
-    private func syncLocalSpace() {
-        if let updated = vm.spaces.first(where: { $0.id == space.id }) {
-            localSpace = updated
+            AddReviewView(spaceID: currentSpace.id)
         }
     }
 
@@ -87,7 +79,7 @@ struct SpaceDetailView: View {
 
     private var photoCarousel: some View {
         TabView {
-            ForEach(localSpace.photoFileNames, id: \.self) { filename in
+            ForEach(currentSpace.photoFileNames, id: \.self) { filename in
                 let image = StudySpaceService.shared.loadPhoto(filename: filename)
                 Group {
                     if let img = image {
@@ -105,7 +97,7 @@ struct SpaceDetailView: View {
                 .clipped()
             }
         }
-        .tabViewStyle(.page(indexDisplayMode: localSpace.photoFileNames.count > 1 ? .always : .never))
+        .tabViewStyle(.page(indexDisplayMode: currentSpace.photoFileNames.count > 1 ? .always : .never))
         .frame(height: 260)
         .ignoresSafeArea(edges: .horizontal)
     }
@@ -117,11 +109,11 @@ struct SpaceDetailView: View {
             HStack(spacing: 6) {
                 Image(systemName: "building.2")
                     .foregroundStyle(.secondary)
-                Text("\(localSpace.building)\(localSpace.floor.isEmpty ? "" : " · \(localSpace.floor)")")
+                Text("\(currentSpace.building)\(currentSpace.floor.isEmpty ? "" : " · \(currentSpace.floor)")")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
-                if localSpace.isVerified {
+                if currentSpace.isVerified {
                     Label("Verified", systemImage: "checkmark.seal.fill")
                         .font(.caption.bold())
                         .foregroundStyle(.white)
@@ -132,13 +124,13 @@ struct SpaceDetailView: View {
 
                 Spacer()
 
-                if let rating = localSpace.averageRating {
+                if let rating = currentSpace.averageRating {
                     HStack(spacing: 4) {
                         Image(systemName: "star.fill")
                             .foregroundStyle(.yellow)
                         Text(String(format: "%.1f", rating))
                             .bold()
-                        Text("(\(localSpace.reviewCount))")
+                        Text("(\(currentSpace.reviewCount))")
                             .foregroundStyle(.secondary)
                     }
                     .font(.subheadline)
@@ -146,8 +138,8 @@ struct SpaceDetailView: View {
             }
             .padding(.horizontal)
 
-            if !localSpace.description.isEmpty {
-                Text(localSpace.description)
+            if !currentSpace.description.isEmpty {
+                Text(currentSpace.description)
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal)
@@ -246,7 +238,7 @@ struct SpaceDetailView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(localSpace.tags) { tag in
+                    ForEach(currentSpace.tags) { tag in
                         Label(tag.displayName, systemImage: tag.systemImage)
                             .font(.subheadline)
                             .padding(.horizontal, 12)
@@ -299,14 +291,14 @@ struct SpaceDetailView: View {
             }
             .padding(.horizontal)
 
-            if localSpace.reviews.isEmpty {
+            if currentSpace.reviews.isEmpty {
                 Text("No reviews yet — be the first!")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal)
                     .padding(.vertical, 8)
             } else {
-                let sorted = localSpace.reviews.sorted { $0.timestamp > $1.timestamp }
+                let sorted = currentSpace.reviews.sorted { $0.timestamp > $1.timestamp }
                 VStack(spacing: 0) {
                     ForEach(sorted) { review in
                         ReviewRow(review: review)
