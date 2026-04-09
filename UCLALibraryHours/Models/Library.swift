@@ -77,10 +77,10 @@ struct Library: Identifiable, Hashable {
         switch today.times.status {
         case "24hours": return "Open 24 hours"
         case "closed": return "Closed today"
-        case "open": return today.rendered
+        case "open": return today.rendered.strippingHTML
         case "ByApp": return "By appointment"
-        case "text": return today.times.note ?? today.rendered
-        default: return today.rendered
+        case "text": return (today.times.note ?? today.rendered).strippingHTML
+        default: return today.rendered.strippingHTML
         }
     }
 
@@ -215,5 +215,13 @@ extension DateFormatter {
     func apply(_ configure: (DateFormatter) -> Void) -> DateFormatter {
         configure(self)
         return self
+    }
+}
+
+extension String {
+    /// Strips HTML tags (e.g. `<br>`, `</br>`, `<b>`) returned by the LibCal API.
+    var strippingHTML: String {
+        replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+            .trimmingCharacters(in: .whitespaces)
     }
 }

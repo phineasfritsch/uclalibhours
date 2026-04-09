@@ -223,7 +223,7 @@ struct DayHoursRow: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             case "open":
-                Text(hours.rendered)
+                Text(hours.rendered.strippingHTML)
                     .font(.subheadline)
                     .foregroundStyle(isToday ? .primary : .secondary)
             case "ByApp":
@@ -231,7 +231,7 @@ struct DayHoursRow: View {
                     .font(.subheadline)
                     .foregroundStyle(.orange)
             default:
-                Text(hours.rendered)
+                Text(hours.rendered.strippingHTML)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }

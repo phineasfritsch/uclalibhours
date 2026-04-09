@@ -217,7 +217,8 @@ struct ExpandableLibraryCard: View {
 
                 StatusBadge(status: library.openStatus)
 
-                // Chevron toggle (only when there are sub-locations)
+                // Chevron toggle — always takes up the same space so the
+                // status badge stays aligned across all cards.
                 if hasSubs {
                     Button {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
@@ -231,6 +232,8 @@ struct ExpandableLibraryCard: View {
                             .frame(width: 28, height: 28)
                             .background(Color(.systemGray5), in: Circle())
                     }
+                } else {
+                    Color.clear.frame(width: 28, height: 28)
                 }
             }
             .padding(.horizontal, 16)

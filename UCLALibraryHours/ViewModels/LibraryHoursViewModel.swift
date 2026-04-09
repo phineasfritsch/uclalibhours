@@ -65,13 +65,18 @@ final class LibraryHoursViewModel: ObservableObject {
         // Drop East Asian Library — YRL represents both locations as one entry
         byLid.removeValue(forKey: 4693)
 
-        // Re-parent each child into its main library.
+        // Re-parent each child into its main library, stripping redundant name parts.
         // Skips duplicates if the API already nested them.
         for (parentLid, childLids) in childrenOf {
             guard let parent = byLid[parentLid] else { continue }
             let existingSubs = Set(parent.subLocations.map { $0.lid })
-            let newChildren = childLids.compactMap { byLid[$0] }
-                                       .filter { !existingSubs.contains($0.lid) }
+            let newChildren = childLids
+                .compactMap { byLid[$0] }
+                .filter { !existingSubs.contains($0.lid) }
+                .map { sub in
+                    // Trim redundant parent references from the sub-location name
+                    sub.withName(Self.simplifiedSubName(sub.name, parentName: parent.name))
+                }
             guard !newChildren.isEmpty else { continue }
             byLid[parentLid] = parent.withSubLocations(parent.subLocations + newChildren)
         }
@@ -112,6 +117,43 @@ final class LibraryHoursViewModel: ObservableObject {
     // Always reflects the true open count across all 10 branches
     var openCount: Int { restructuredLibraries.filter { $0.openStatus.isAccessible }.count }
     var totalCount: Int { mainLibraryOrder.count }
+
+    // MARK: - Sub-location name cleanup
+
+    /// Removes redundant references to the parent library from a sub-location name.
+    ///
+    /// Examples:
+    ///   "Arts Library Reference Desk"       (parent: "Arts Library")      → "Reference Desk"
+    ///   "Equipment Lending (Biomedical Library)" (parent: "Biomedical Library") → "Equipment Lending"
+    ///   "Equipment Lending (SEL/Geo)"       (parent: "SEL/Geology")       → "Equipment Lending"
+    private static func simplifiedSubName(_ name: String, parentName: String) -> String {
+        var result = name
+
+        // 1. Strip leading parent-name prefix
+        //    "Music Library Research Help Desk" → "Research Help Desk"
+        let prefix = parentName + " "
+        if result.lowercased().hasPrefix(prefix.lowercased()) {
+            result = String(result.dropFirst(prefix.count))
+        }
+
+        // 2. Strip a trailing parenthetical that refers to the parent location
+        //    "Equipment Lending (Biomedical Library)" → "Equipment Lending"
+        //    "Equipment Lending (SEL/Geo)" → "Equipment Lending"
+        //    Strategy: match if the parent name *contains* the paren content,
+        //    covering both exact ("Biomedical Library") and abbreviated ("SEL/Geo") forms.
+        if let openIdx = result.lastIndex(of: "("),
+           let closeIdx = result.lastIndex(of: ")"),
+           openIdx < closeIdx {
+            let parenContent = result[result.index(after: openIdx)..<closeIdx]
+                .trimmingCharacters(in: .whitespaces)
+                .lowercased()
+            if parentName.lowercased().contains(parenContent) {
+                result = String(result[..<openIdx]).trimmingCharacters(in: .whitespaces)
+            }
+        }
+
+        return result.trimmingCharacters(in: .whitespaces)
+    }
 
     // MARK: - Load
 
