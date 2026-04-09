@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(py -3 -c \"import sys; print\\(sys.version\\)\")",
+      "Bash(node -e ':*)",
+      "Bash(where node:*)",
+      "Bash(where npm:*)",
+      "Read(//mnt/c/Users/**)",
+      "Bash(cmd.exe /c \"where node 2>nul & where python 2>nul & where python3 2>nul\")",
+      "Bash(cmd.exe /c \"where node\")",
+      "Bash(cmd.exe /c \"where python\")",
+      "Bash(powershell -Command ':*)"
+    ]
+  }
+}
