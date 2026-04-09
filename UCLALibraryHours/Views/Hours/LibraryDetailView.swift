@@ -3,8 +3,12 @@ import SwiftUI
 struct LibraryDetailView: View {
     let library: Library
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.openURL) private var openURL
+
+    @State private var showMapOptions = false
 
     private let dayOrder = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    private var locationInfo: LibraryLocationInfo? { LibraryLocationInfo.byLid[library.lid] }
 
     var body: some View {
         ScrollView {
@@ -12,6 +16,12 @@ struct LibraryDetailView: View {
                 // Status hero card
                 statusCard
                     .padding(.horizontal)
+
+                // Special-instructions banner (SEL/Boelter, SEL/Geology)
+                if let instructions = locationInfo?.specialInstructions {
+                    specialInstructionsBanner(instructions)
+                        .padding(.horizontal)
+                }
 
                 // Current week hours
                 hoursSection(
@@ -39,15 +49,62 @@ struct LibraryDetailView: View {
         .navigationTitle(library.name)
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
-            if let urlStr = library.allWeekHours.first.flatMap({ _ in
-                "https://calendar.library.ucla.edu/hours"
-            }), let url = URL(string: urlStr) {
+            // Map button — only shown for libraries that have a known address
+            if locationInfo != nil {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Link(destination: url) {
-                        Image(systemName: "safari")
+                    Button {
+                        showMapOptions = true
+                    } label: {
+                        Image(systemName: "map")
                     }
                 }
             }
+        }
+        .confirmationDialog(
+            "Get Directions",
+            isPresented: $showMapOptions,
+            titleVisibility: .visible
+        ) {
+            Button("Open in Apple Maps") {
+                if let url = locationInfo?.appleMapURL {
+                    openURL(url)
+                }
+            }
+            Button("Open in Google Maps") {
+                guard let info = locationInfo else { return }
+                let appURL = info.googleMapAppURL
+                if UIApplication.shared.canOpenURL(appURL) {
+                    UIApplication.shared.open(appURL)
+                } else {
+                    openURL(info.googleMapWebURL)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            if let info = locationInfo {
+                Text(info.address)
+            }
+        }
+    }
+
+    // MARK: - Special Instructions Banner
+
+    private func specialInstructionsBanner(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "signpost.right.fill")
+                .foregroundStyle(.orange)
+                .font(.subheadline)
+                .padding(.top, 1)
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
         }
     }
 
