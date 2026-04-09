@@ -27,7 +27,7 @@ struct AddSpaceView: View {
                         .overlay(alignment: .topLeading) {
                             if description.isEmpty {
                                 Text("What makes this spot special? Tips, hours, restrictions…")
-                                    .foregroundStyle(.placeholder)
+                                    .foregroundStyle(.tertiary)
                                     .padding(.top, 8)
                                     .padding(.leading, 4)
                                     .allowsHitTesting(false)

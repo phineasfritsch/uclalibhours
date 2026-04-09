@@ -85,7 +85,7 @@ struct StudySpacesView: View {
                         .font(.caption.bold())
                 }
             }
-            .foregroundStyle(vm.selectedTags.isEmpty ? .secondary : .uclaBlue)
+            .foregroundStyle(vm.selectedTags.isEmpty ? AnyShapeStyle(.secondary) : AnyShapeStyle(Color.uclaBlue))
         }
         .sheet(isPresented: $tagSheetVisible) {
             TagFilterSheet(selectedTags: $vm.selectedTags)
