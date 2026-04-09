@@ -9,7 +9,8 @@
       "Bash(cmd.exe /c \"where node 2>nul & where python 2>nul & where python3 2>nul\")",
       "Bash(cmd.exe /c \"where node\")",
       "Bash(cmd.exe /c \"where python\")",
-      "Bash(powershell -Command ':*)"
+      "Bash(powershell -Command ':*)",
+      "Bash(firebase --version)"
     ]
   }
 }

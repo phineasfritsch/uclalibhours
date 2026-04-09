@@ -176,33 +176,33 @@ struct AddSpaceView: View {
     // MARK: - Actions
 
     private func addSpace() {
-        // Save photos to disk
-        let service = StudySpaceService.shared
-        var fileNames: [String] = []
-        for img in selectedImages {
-            if let data = img.jpegData(compressionQuality: 1.0),
-               let name = service.savePhoto(imageData: data) {
-                fileNames.append(name)
+        Task {
+            // Upload photos to Firebase Storage first, collect download URLs
+            let service = StudySpaceService.shared
+            var photoURLs: [String] = []
+            for img in selectedImages {
+                if let data = img.jpegData(compressionQuality: 1.0),
+                   let url = try? await service.uploadPhoto(imageData: data, userID: vm.userID) {
+                    photoURLs.append(url)
+                }
             }
-        }
 
-        let space = StudySpace(
-            id: UUID().uuidString,
-            name: name,
-            building: building,
-            floor: floor,
-            description: description,
-            tags: Array(selectedTags),
-            reports: [],
-            reviews: [],
-            createdAt: Date(),
-            createdByUserID: vm.userID,
-            isVerified: false,
-            photoFileNames: fileNames,
-            submissionStatus: .approved
-        )
-        vm.addSpace(space)
-        dismiss()
+            let space = StudySpace(
+                id: UUID().uuidString,
+                name: name,
+                building: building,
+                floor: floor,
+                description: description,
+                tags: Array(selectedTags),
+                createdAt: Date(),
+                createdByUserID: vm.userID,
+                isVerified: false,
+                photoURLs: photoURLs,
+                submissionStatus: .approved
+            )
+            vm.addSpace(space)
+            dismiss()
+        }
     }
 
     @MainActor

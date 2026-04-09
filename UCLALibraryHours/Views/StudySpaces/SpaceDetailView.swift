@@ -20,7 +20,7 @@ struct SpaceDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // Photo carousel (if photos exist)
-                if !currentSpace.photoFileNames.isEmpty {
+                if !currentSpace.photoURLs.isEmpty {
                     photoCarousel
                 }
 
@@ -48,7 +48,7 @@ struct SpaceDetailView: View {
 
                 Spacer(minLength: 32)
             }
-            .padding(.top, currentSpace.photoFileNames.isEmpty ? 16 : 0)
+            .padding(.top, currentSpace.photoURLs.isEmpty ? 16 : 0)
         }
         .navigationTitle(currentSpace.name)
         .navigationBarTitleDisplayMode(.large)
@@ -79,25 +79,23 @@ struct SpaceDetailView: View {
 
     private var photoCarousel: some View {
         TabView {
-            ForEach(currentSpace.photoFileNames, id: \.self) { filename in
-                let image = StudySpaceService.shared.loadPhoto(filename: filename)
-                Group {
-                    if let img = image {
-                        Image(uiImage: img)
-                            .resizable()
-                            .scaledToFill()
-                    } else {
+            ForEach(currentSpace.photoURLs, id: \.self) { urlString in
+                AsyncImage(url: URL(string: urlString)) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    case .failure:
                         Color(.systemGray5)
-                            .overlay {
-                                Image(systemName: "photo")
-                                    .foregroundStyle(.secondary)
-                            }
+                            .overlay { Image(systemName: "photo").foregroundStyle(.secondary) }
+                    default:
+                        Color(.systemGray5)
+                            .overlay { ProgressView() }
                     }
                 }
                 .clipped()
             }
         }
-        .tabViewStyle(.page(indexDisplayMode: currentSpace.photoFileNames.count > 1 ? .always : .never))
+        .tabViewStyle(.page(indexDisplayMode: currentSpace.photoURLs.count > 1 ? .always : .never))
         .frame(height: 260)
         .ignoresSafeArea(edges: .horizontal)
     }

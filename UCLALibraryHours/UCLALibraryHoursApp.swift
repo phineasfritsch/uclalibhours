@@ -1,5 +1,6 @@
 import SwiftUI
 import BackgroundTasks
+import FirebaseCore
 
 @main
 struct UCLALibraryHoursApp: App {
@@ -7,6 +8,8 @@ struct UCLALibraryHoursApp: App {
     @StateObject private var studySpaceViewModel = StudySpaceViewModel()
 
     init() {
+        FirebaseApp.configure()
+
         BGTaskScheduler.shared.register(
             forTaskWithIdentifier: "com.uclalib.hours.refresh",
             using: nil

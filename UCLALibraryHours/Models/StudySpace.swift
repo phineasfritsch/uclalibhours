@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseFirestore
 
 // MARK: - Submission Status
 
@@ -10,18 +11,18 @@ enum SubmissionStatus: String, Codable {
 // MARK: - Study Space
 
 struct StudySpace: Identifiable, Codable, Hashable {
-    let id: String
+    @DocumentID var id: String?
     var name: String
     var building: String
     var floor: String
     var description: String
     var tags: [SpaceTag]
-    var reports: [SpaceReport]
-    var reviews: [SpaceReview]
-    let createdAt: Date
-    let createdByUserID: String
+    var reports: [SpaceReport]       // kept for local offline use; live data via subcollection
+    var reviews: [SpaceReview]       // kept for local offline use; live data via subcollection
+    var createdAt: Date
+    var createdByUserID: String
     var isVerified: Bool
-    var photoFileNames: [String]
+    var photoURLs: [String]          // Firebase Storage download URLs
     var submissionStatus: SubmissionStatus
 
     var latestReport: SpaceReport? {
@@ -38,17 +39,10 @@ struct StudySpace: Identifiable, Codable, Hashable {
     static func == (lhs: StudySpace, rhs: StudySpace) -> Bool { lhs.id == rhs.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 
-    // MARK: - Backwards-compatible decoding
-
-    enum CodingKeys: String, CodingKey {
-        case id, name, building, floor, description, tags, reports, reviews
-        case createdAt, createdByUserID, isVerified, photoFileNames, submissionStatus
-    }
-
     init(id: String, name: String, building: String, floor: String, description: String,
-         tags: [SpaceTag], reports: [SpaceReport], reviews: [SpaceReview],
+         tags: [SpaceTag], reports: [SpaceReport] = [], reviews: [SpaceReview] = [],
          createdAt: Date, createdByUserID: String,
-         isVerified: Bool = false, photoFileNames: [String] = [],
+         isVerified: Bool = false, photoURLs: [String] = [],
          submissionStatus: SubmissionStatus = .approved) {
         self.id = id
         self.name = name
@@ -61,25 +55,8 @@ struct StudySpace: Identifiable, Codable, Hashable {
         self.createdAt = createdAt
         self.createdByUserID = createdByUserID
         self.isVerified = isVerified
-        self.photoFileNames = photoFileNames
+        self.photoURLs = photoURLs
         self.submissionStatus = submissionStatus
-    }
-
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = try c.decode(String.self, forKey: .id)
-        name = try c.decode(String.self, forKey: .name)
-        building = try c.decode(String.self, forKey: .building)
-        floor = try c.decode(String.self, forKey: .floor)
-        description = try c.decode(String.self, forKey: .description)
-        tags = try c.decode([SpaceTag].self, forKey: .tags)
-        reports = try c.decode([SpaceReport].self, forKey: .reports)
-        reviews = try c.decode([SpaceReview].self, forKey: .reviews)
-        createdAt = try c.decode(Date.self, forKey: .createdAt)
-        createdByUserID = try c.decode(String.self, forKey: .createdByUserID)
-        isVerified = try c.decodeIfPresent(Bool.self, forKey: .isVerified) ?? false
-        photoFileNames = try c.decodeIfPresent([String].self, forKey: .photoFileNames) ?? []
-        submissionStatus = try c.decodeIfPresent(SubmissionStatus.self, forKey: .submissionStatus) ?? .approved
     }
 }
 
@@ -139,7 +116,7 @@ enum SpaceTag: String, Codable, CaseIterable, Identifiable {
 // MARK: - Space Report
 
 struct SpaceReport: Identifiable, Codable {
-    let id: String
+    @DocumentID var id: String?
     let userID: String
     let crowdLevel: CrowdLevel
     let noiseLevel: NoiseLevel
@@ -257,7 +234,7 @@ enum SeatingAvailability: String, Codable, CaseIterable, Identifiable {
 // MARK: - Space Review
 
 struct SpaceReview: Identifiable, Codable {
-    let id: String
+    @DocumentID var id: String?
     let userID: String
     let rating: Int // 1–5
     let body: String
