@@ -122,7 +122,7 @@ struct AddSpaceView: View {
                         ) {
                             Label("Add Photos (\(selectedImages.count)/\(maxPhotos))", systemImage: "photo.badge.plus")
                         }
-                        .onChange(of: photoPickerItems) { _, items in
+                        .onChange(of: photoPickerItems) { items in
                             Task { await loadNewPhotos(from: items) }
                         }
                     }
