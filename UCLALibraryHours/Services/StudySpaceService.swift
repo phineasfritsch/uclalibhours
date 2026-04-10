@@ -37,15 +37,14 @@ final class StudySpaceService {
             try? doc.data(as: StudySpace.self)
         }
 
-        // Verified spaces are seeded from the server on first write.
-        // Locally, ensure they appear even before the server round-trip.
-        let verifiedIDs = Set(spaces.filter(\.isVerified).map(\.id))
-        let missing = Self.verifiedSeedData().filter { !verifiedIDs.contains($0.id) }
-        if !missing.isEmpty {
-            for space in missing {
-                try? await addSpace(space, skipRateLimit: true)
-            }
-            spaces.insert(contentsOf: missing, at: 0)
+        // Seed verified spaces into Firestore if not already there.
+        // Rules temporarily allow isVerified:true from createdByUserID:"verified".
+        // Remove this block after first run.
+        let existingIDs = Set(spaces.compactMap(\.id))
+        let missing = Self.verifiedSeedData().filter { !existingIDs.contains($0.id ?? "") }
+        for space in missing {
+            try? await addSpace(space)
+            spaces.insert(space, at: 0)
         }
 
         return spaces
@@ -53,13 +52,11 @@ final class StudySpaceService {
 
     // MARK: - Write Space
 
-    func addSpace(_ space: StudySpace, skipRateLimit: Bool = false) async throws {
+    func addSpace(_ space: StudySpace) async throws {
         let docRef = space.id.map { db.collection("studySpaces").document($0) }
                      ?? db.collection("studySpaces").document()
         try docRef.setData(from: space)
-        if !skipRateLimit {
-            try await recordSubmission()
-        }
+        try await recordSubmission()
     }
 
     func deleteSpace(id: String) async throws {
