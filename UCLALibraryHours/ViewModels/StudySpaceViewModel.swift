@@ -88,6 +88,32 @@ final class StudySpaceViewModel: ObservableObject {
         }
     }
 
+    func loadReviews(for spaceID: String) {
+        Task {
+            do {
+                let reviews = try await StudySpaceService.shared.loadReviews(for: spaceID)
+                if let idx = spaces.firstIndex(where: { $0.id == spaceID }) {
+                    spaces[idx].reviews = reviews
+                }
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    func loadReports(for spaceID: String) {
+        Task {
+            do {
+                let reports = try await StudySpaceService.shared.loadReports(for: spaceID)
+                if let idx = spaces.firstIndex(where: { $0.id == spaceID }) {
+                    spaces[idx].reports = reports
+                }
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
     func deleteSpace(id: String) {
         Task {
             do {

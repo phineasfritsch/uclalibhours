@@ -43,7 +43,7 @@ final class StudySpaceService {
         let missing = Self.verifiedSeedData().filter { !verifiedIDs.contains($0.id) }
         if !missing.isEmpty {
             for space in missing {
-                try? await addSpace(space)
+                try? await addSpace(space, skipRateLimit: true)
             }
             spaces.insert(contentsOf: missing, at: 0)
         }
@@ -53,11 +53,13 @@ final class StudySpaceService {
 
     // MARK: - Write Space
 
-    func addSpace(_ space: StudySpace) async throws {
+    func addSpace(_ space: StudySpace, skipRateLimit: Bool = false) async throws {
         let docRef = space.id.map { db.collection("studySpaces").document($0) }
                      ?? db.collection("studySpaces").document()
         try docRef.setData(from: space)
-        try await recordSubmission()
+        if !skipRateLimit {
+            try await recordSubmission()
+        }
     }
 
     func deleteSpace(id: String) async throws {

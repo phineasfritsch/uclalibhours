@@ -67,11 +67,20 @@ struct SpaceDetailView: View {
                 }
             }
         }
+        .onAppear {
+            if let id = currentSpace.id {
+                vm.loadReviews(for: id)
+                vm.loadReports(for: id)
+            }
+        }
         .sheet(isPresented: $showReport) {
             ReportSpaceView(spaceID: currentSpace.id ?? "")
         }
         .sheet(isPresented: $showAddReview) {
             AddReviewView(spaceID: currentSpace.id ?? "")
+                .onDisappear {
+                    if let id = currentSpace.id { vm.loadReviews(for: id) }
+                }
         }
     }
 
