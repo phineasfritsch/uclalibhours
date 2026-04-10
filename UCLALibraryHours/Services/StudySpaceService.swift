@@ -54,9 +54,9 @@ final class StudySpaceService {
     // MARK: - Write Space
 
     func addSpace(_ space: StudySpace) async throws {
-        try db.collection("studySpaces")
-            .document(space.id)
-            .setData(from: space)
+        let docRef = space.id.map { db.collection("studySpaces").document($0) }
+                     ?? db.collection("studySpaces").document()
+        try docRef.setData(from: space)
         try await recordSubmission()
     }
 
@@ -73,7 +73,7 @@ final class StudySpaceService {
         try db.collection("studySpaces")
             .document(spaceID)
             .collection("reports")
-            .document(report.id)
+            .document(report.id ?? UUID().uuidString)
             .setData(from: report)
     }
 
