@@ -57,7 +57,7 @@ struct SpaceDetailView: View {
                 if !currentSpace.isVerified {
                     Menu {
                         Button(role: .destructive) {
-                            vm.deleteSpace(id: currentSpace.id)
+                            if let id = currentSpace.id { vm.deleteSpace(id: id) }
                         } label: {
                             Label("Remove Space", systemImage: "trash")
                         }
@@ -68,10 +68,10 @@ struct SpaceDetailView: View {
             }
         }
         .sheet(isPresented: $showReport) {
-            ReportSpaceView(spaceID: currentSpace.id)
+            ReportSpaceView(spaceID: currentSpace.id ?? "")
         }
         .sheet(isPresented: $showAddReview) {
-            AddReviewView(spaceID: currentSpace.id)
+            AddReviewView(spaceID: currentSpace.id ?? "")
         }
     }
 
