@@ -6,14 +6,24 @@ struct SpaceDetailView: View {
 
     @State private var showReport = false
     @State private var showAddReview = false
+    @State private var reviews: [SpaceReview] = []
+    @State private var latestReport: SpaceReport? = nil
 
     @Environment(\.colorScheme) var colorScheme
 
-    /// Always reads the latest version of this space from the ViewModel.
-    /// Because vm.spaces is @Published, any mutation (review, report, delete)
-    /// automatically re-renders this view without any manual sync needed.
     private var currentSpace: StudySpace {
         vm.spaces.first(where: { $0.id == space.id }) ?? space
+    }
+
+    private func loadData() {
+        guard let id = currentSpace.id else { return }
+        Task {
+            async let fetchedReviews = StudySpaceService.shared.loadReviews(for: id)
+            async let fetchedReports = StudySpaceService.shared.loadReports(for: id)
+            reviews = (try? await fetchedReviews) ?? []
+            latestReport = (try? await fetchedReports)?
+                .sorted { $0.timestamp > $1.timestamp }.first
+        }
     }
 
     var body: some View {
@@ -28,7 +38,7 @@ struct SpaceDetailView: View {
                 headerSection
 
                 // Latest crowd report
-                if let report = currentSpace.latestReport {
+                if let report = latestReport {
                     crowdReportCard(report)
                 }
 
@@ -67,20 +77,14 @@ struct SpaceDetailView: View {
                 }
             }
         }
-        .onAppear {
-            if let id = currentSpace.id {
-                vm.loadReviews(for: id)
-                vm.loadReports(for: id)
-            }
-        }
+        .onAppear { loadData() }
         .sheet(isPresented: $showReport) {
             ReportSpaceView(spaceID: currentSpace.id ?? "")
+                .onDisappear { loadData() }
         }
         .sheet(isPresented: $showAddReview) {
             AddReviewView(spaceID: currentSpace.id ?? "")
-                .onDisappear {
-                    if let id = currentSpace.id { vm.loadReviews(for: id) }
-                }
+                .onDisappear { loadData() }
         }
     }
 
@@ -131,13 +135,14 @@ struct SpaceDetailView: View {
 
                 Spacer()
 
-                if let rating = currentSpace.averageRating {
+                if !reviews.isEmpty {
+                    let avg = Double(reviews.map(\.rating).reduce(0, +)) / Double(reviews.count)
                     HStack(spacing: 4) {
                         Image(systemName: "star.fill")
                             .foregroundStyle(.yellow)
-                        Text(String(format: "%.1f", rating))
+                        Text(String(format: "%.1f", avg))
                             .bold()
-                        Text("(\(currentSpace.reviewCount))")
+                        Text("(\(reviews.count))")
                             .foregroundStyle(.secondary)
                     }
                     .font(.subheadline)
@@ -298,14 +303,14 @@ struct SpaceDetailView: View {
             }
             .padding(.horizontal)
 
-            if currentSpace.reviews.isEmpty {
+            if reviews.isEmpty {
                 Text("No reviews yet — be the first!")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal)
                     .padding(.vertical, 8)
             } else {
-                let sorted = currentSpace.reviews.sorted { $0.timestamp > $1.timestamp }
+                let sorted = reviews.sorted { $0.timestamp > $1.timestamp }
                 VStack(spacing: 0) {
                     ForEach(sorted) { review in
                         ReviewRow(review: review)
@@ -451,7 +456,6 @@ struct AddReviewView: View {
                     Button("Submit") {
                         guard vm.canReview else { return }
                         let review = SpaceReview(
-                            id: UUID().uuidString,
                             userID: vm.userID,
                             rating: rating,
                             body: reviewText,
