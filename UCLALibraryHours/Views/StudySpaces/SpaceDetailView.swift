@@ -407,6 +407,23 @@ struct AddReviewView: View {
     var body: some View {
         NavigationStack {
             Form {
+                if !vm.canReview {
+                    Section {
+                        HStack(spacing: 10) {
+                            Image(systemName: "clock.badge.exclamationmark")
+                                .foregroundStyle(.orange)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Daily Limit Reached")
+                                    .font(.subheadline.bold())
+                                Text("You've written 3 reviews today. Come back tomorrow.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+
                 Section("Your Rating") {
                     HStack(spacing: 4) {
                         ForEach(1...5, id: \.self) { star in
@@ -432,6 +449,7 @@ struct AddReviewView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Submit") {
+                        guard vm.canReview else { return }
                         let review = SpaceReview(
                             id: UUID().uuidString,
                             userID: vm.userID,
@@ -443,6 +461,7 @@ struct AddReviewView: View {
                         dismiss()
                     }
                     .bold()
+                    .disabled(!vm.canReview)
                 }
             }
         }

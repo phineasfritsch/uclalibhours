@@ -43,7 +43,7 @@ final class StudySpaceService {
         let existingIDs = Set(spaces.compactMap(\.id))
         let missing = Self.verifiedSeedData().filter { !existingIDs.contains($0.id ?? "") }
         for space in missing {
-            try? await addSpace(space)
+            try? await addSpace(space, skipRateLimit: true)
             spaces.insert(space, at: 0)
         }
 
@@ -52,11 +52,13 @@ final class StudySpaceService {
 
     // MARK: - Write Space
 
-    func addSpace(_ space: StudySpace) async throws {
+    func addSpace(_ space: StudySpace, skipRateLimit: Bool = false) async throws {
         let docRef = space.id.map { db.collection("studySpaces").document($0) }
                      ?? db.collection("studySpaces").document()
         try docRef.setData(from: space)
-        try await recordSubmission()
+        if !skipRateLimit {
+            try await recordSpaceSubmission()
+        }
     }
 
     func deleteSpace(id: String) async throws {
@@ -91,11 +93,13 @@ final class StudySpaceService {
     func submitReview(_ review: SpaceReview, to spaceID: String) async throws {
         let uid = anonymousUserID
         guard !uid.isEmpty else { throw ServiceError.notSignedIn }
+        guard await canSubmitReview() else { throw ServiceError.reviewLimitReached }
         try db.collection("studySpaces")
             .document(spaceID)
             .collection("reviews")
             .document(uid)          // UID as doc ID = one review per user at DB level
             .setData(from: review)
+        try await recordReviewSubmission()
     }
 
     func loadReviews(for spaceID: String) async throws -> [SpaceReview] {
@@ -122,49 +126,48 @@ final class StudySpaceService {
         return url.absoluteString
     }
 
-    // MARK: - Rate Limiting (server-side via Firestore)
+    // MARK: - Rate Limiting
+    // submissionLogs/{uid} stores two arrays:
+    //   spaceDates  — timestamps of space submissions (limit: 3/day)
+    //   reviewDates — timestamps of review submissions (limit: 3/day)
 
     func canSubmitSpace() async -> Bool {
-        guard !anonymousUserID.isEmpty else { return false }
-        do {
-            let doc = try await db.collection("submissionLogs")
-                .document(anonymousUserID)
-                .getDocument()
-            guard let data = doc.data(),
-                  let timestamps = data["dates"] as? [Timestamp] else { return true }
-            let todayCount = timestamps.filter {
-                Calendar.current.isDateInToday($0.dateValue())
-            }.count
-            return todayCount < maxSubmissionsPerDay
-        } catch {
-            return true // Fail open — rules will block abusive writes server-side
-        }
+        await todayCount(field: "spaceDates") < maxSubmissionsPerDay
     }
 
     func remainingSubmissions() async -> Int {
+        max(0, maxSubmissionsPerDay - (await todayCount(field: "spaceDates")))
+    }
+
+    func canSubmitReview() async -> Bool {
+        await todayCount(field: "reviewDates") < maxSubmissionsPerDay
+    }
+
+    func remainingReviews() async -> Int {
+        max(0, maxSubmissionsPerDay - (await todayCount(field: "reviewDates")))
+    }
+
+    private func todayCount(field: String) async -> Int {
         guard !anonymousUserID.isEmpty else { return 0 }
         do {
             let doc = try await db.collection("submissionLogs")
                 .document(anonymousUserID)
                 .getDocument()
-            guard let data = doc.data(),
-                  let timestamps = data["dates"] as? [Timestamp] else {
-                return maxSubmissionsPerDay
-            }
-            let todayCount = timestamps.filter {
-                Calendar.current.isDateInToday($0.dateValue())
-            }.count
-            return max(0, maxSubmissionsPerDay - todayCount)
+            guard let timestamps = doc.data()?[field] as? [Timestamp] else { return 0 }
+            return timestamps.filter { Calendar.current.isDateInToday($0.dateValue()) }.count
         } catch {
-            return maxSubmissionsPerDay
+            return 0 // Fail open
         }
     }
 
-    private func recordSubmission() async throws {
+    private func recordSpaceSubmission() async throws {
         let ref = db.collection("submissionLogs").document(anonymousUserID)
-        try await ref.setData([
-            "dates": FieldValue.arrayUnion([Timestamp(date: Date())])
-        ], merge: true)
+        try await ref.setData(["spaceDates": FieldValue.arrayUnion([Timestamp(date: Date())])], merge: true)
+    }
+
+    private func recordReviewSubmission() async throws {
+        let ref = db.collection("submissionLogs").document(anonymousUserID)
+        try await ref.setData(["reviewDates": FieldValue.arrayUnion([Timestamp(date: Date())])], merge: true)
     }
 
     // MARK: - Errors
@@ -172,11 +175,13 @@ final class StudySpaceService {
     enum ServiceError: LocalizedError {
         case notSignedIn
         case invalidImage
+        case reviewLimitReached
 
         var errorDescription: String? {
             switch self {
             case .notSignedIn: return "Not signed in. Please restart the app."
             case .invalidImage: return "Could not process the selected image."
+            case .reviewLimitReached: return "You've written 3 reviews today. Come back tomorrow."
             }
         }
     }

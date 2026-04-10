@@ -10,6 +10,8 @@ final class StudySpaceViewModel: ObservableObject {
     @Published var selectedTags: Set<SpaceTag> = []
     @Published var canSubmit = true
     @Published var remainingSubmissions = 3
+    @Published var canReview = true
+    @Published var remainingReviews = 3
 
     var verifiedSpaces: [StudySpace] { spaces.filter(\.isVerified) }
     var communitySpaces: [StudySpace] { spaces.filter { !$0.isVerified } }
@@ -39,6 +41,8 @@ final class StudySpaceViewModel: ObservableObject {
     func refreshSubmissionStatus() async {
         canSubmit = await StudySpaceService.shared.canSubmitSpace()
         remainingSubmissions = await StudySpaceService.shared.remainingSubmissions()
+        canReview = await StudySpaceService.shared.canSubmitReview()
+        remainingReviews = await StudySpaceService.shared.remainingReviews()
     }
 
     // MARK: - Actions
@@ -77,11 +81,11 @@ final class StudySpaceViewModel: ObservableObject {
         Task {
             do {
                 try await StudySpaceService.shared.submitReview(review, to: spaceID)
-                // Reload subcollection so the @DocumentID (userID as doc ID) is set correctly
                 let updated = try await StudySpaceService.shared.loadReviews(for: spaceID)
                 if let idx = spaces.firstIndex(where: { $0.id == spaceID }) {
                     spaces[idx].reviews = updated
                 }
+                await refreshSubmissionStatus()
             } catch {
                 errorMessage = error.localizedDescription
             }
