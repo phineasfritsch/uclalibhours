@@ -26,7 +26,6 @@
 		000000000000000000000058 /* LibraryLocations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000059 /* LibraryLocations.swift */; };
 		AAFB00000000000000000006 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = AAFB00000000000000000002 /* FirebaseAuth */; };
 		AAFB00000000000000000007 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = AAFB00000000000000000003 /* FirebaseFirestore */; };
-		AAFB00000000000000000008 /* FirebaseFirestoreSwift in Frameworks */ = {isa = PBXBuildFile; productRef = AAFB00000000000000000004 /* FirebaseFirestoreSwift */; };
 		AAFB00000000000000000009 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = AAFB00000000000000000005 /* FirebaseStorage */; };
 		AAFB0000000000000000000A /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = AAFB0000000000000000000B /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
@@ -62,7 +61,6 @@
 			files = (
 				AAFB00000000000000000006 /* FirebaseAuth in Frameworks */,
 				AAFB00000000000000000007 /* FirebaseFirestore in Frameworks */,
-				AAFB00000000000000000008 /* FirebaseFirestoreSwift in Frameworks */,
 				AAFB00000000000000000009 /* FirebaseStorage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -188,7 +186,6 @@
 			packageProductDependencies = (
 				AAFB00000000000000000002 /* FirebaseAuth */,
 				AAFB00000000000000000003 /* FirebaseFirestore */,
-				AAFB00000000000000000004 /* FirebaseFirestoreSwift */,
 				AAFB00000000000000000005 /* FirebaseStorage */,
 			);
 			productName = UCLALibraryHours;
@@ -481,11 +478,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AAFB00000000000000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFirestore;
-		};
-		AAFB00000000000000000004 /* FirebaseFirestoreSwift */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AAFB00000000000000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseFirestoreSwift;
 		};
 		AAFB00000000000000000005 /* FirebaseStorage */ = {
 			isa = XCSwiftPackageProductDependency;
