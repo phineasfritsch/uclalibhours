@@ -27,7 +27,7 @@ struct AddSpaceView: View {
         NavigationStack {
             Form {
                 // Rate limit banner
-                if !vm.canSubmitSpace {
+                if !vm.canSubmit {
                     Section {
                         HStack(spacing: 10) {
                             Image(systemName: "clock.badge.exclamationmark")
@@ -167,7 +167,7 @@ struct AddSpaceView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Submit") { addSpace() }
                         .bold()
-                        .disabled(!canSubmit || !vm.canSubmitSpace)
+                        .disabled(!canSubmit || !vm.canSubmit)
                 }
             }
         }
