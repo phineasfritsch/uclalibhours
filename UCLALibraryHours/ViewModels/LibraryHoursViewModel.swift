@@ -10,6 +10,18 @@ final class LibraryHoursViewModel: ObservableObject {
     @Published var searchText = ""
     @Published var showOpenOnly = false
 
+    private var statusRefreshTimer: AnyCancellable?
+
+    init() {
+        // Re-evaluate open/closed status every minute so the UI stays current
+        // without needing to fetch new data from the API.
+        statusRefreshTimer = Timer.publish(every: 60, tolerance: 5, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+    }
+
     // MARK: - Display order for the 10 main branches
 
     private let mainLibraryOrder: [Int] = [
