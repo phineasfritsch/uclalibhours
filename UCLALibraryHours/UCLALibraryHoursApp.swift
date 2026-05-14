@@ -7,6 +7,7 @@ struct UCLALibraryHoursApp: App {
     @StateObject private var hoursViewModel = LibraryHoursViewModel()
     @StateObject private var studySpaceViewModel = StudySpaceViewModel()
     @StateObject private var fitnessViewModel = FitnessViewModel()
+    @StateObject private var blockService = BlockService.shared
 
     init() {
         FirebaseApp.configure()
@@ -29,6 +30,7 @@ struct UCLALibraryHoursApp: App {
                 .environmentObject(hoursViewModel)
                 .environmentObject(studySpaceViewModel)
                 .environmentObject(fitnessViewModel)
+                .environmentObject(blockService)
         }
     }
 }

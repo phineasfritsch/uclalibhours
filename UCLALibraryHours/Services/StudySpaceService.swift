@@ -1,8 +1,6 @@
 import Foundation
-import UIKit
 import FirebaseAuth
 import FirebaseFirestore
-import FirebaseStorage
 
 // MARK: - StudySpaceService (Firebase-backed)
 
@@ -10,7 +8,6 @@ final class StudySpaceService {
     static let shared = StudySpaceService()
 
     private let db = Firestore.firestore()
-    private let storage = Storage.storage().reference()
     private let maxSubmissionsPerDay = 3
 
     // MARK: - Auth
@@ -151,22 +148,6 @@ final class StudySpaceService {
         return snapshot.documents.compactMap { try? $0.data(as: SpaceReview.self) }
     }
 
-    // MARK: - Photo Upload
-
-    /// Compresses, uploads to Storage, returns the download URL string.
-    func uploadPhoto(imageData: Data, userID: String) async throws -> String {
-        guard let image = UIImage(data: imageData),
-              let compressed = image.jpegData(compressionQuality: 0.65) else {
-            throw ServiceError.invalidImage
-        }
-        let ref = storage.child("spacePhotos/\(userID)/\(UUID().uuidString).jpg")
-        let meta = StorageMetadata()
-        meta.contentType = "image/jpeg"
-        _ = try await ref.putDataAsync(compressed, metadata: meta)
-        let url = try await ref.downloadURL()
-        return url.absoluteString
-    }
-
     // MARK: - Rate Limiting
     // submissionLogs/{uid} stores two arrays:
     //   spaceDates  — timestamps of space submissions (limit: 3/day)
@@ -215,16 +196,16 @@ final class StudySpaceService {
 
     enum ServiceError: LocalizedError {
         case notSignedIn
-        case invalidImage
         case reviewLimitReached
         case contentRejected(String)
+        case userBlocked
 
         var errorDescription: String? {
             switch self {
             case .notSignedIn: return "Not signed in. Please restart the app."
-            case .invalidImage: return "Could not process the selected image."
             case .reviewLimitReached: return "You've written 3 reviews today. Come back tomorrow."
             case .contentRejected(let msg): return msg
+            case .userBlocked: return "Your account is currently restricted from posting."
             }
         }
     }

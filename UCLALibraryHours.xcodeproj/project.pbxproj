@@ -35,6 +35,12 @@
 		AAFB0000000000000000000A /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = AAFB0000000000000000000B /* GoogleService-Info.plist */; };
 		0000000000000000000000C1 /* ContentModeratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0000000000000000000000C0 /* ContentModeratorTests.swift */; };
 		0000000000000000000000CC /* ContentModerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000070 /* ContentModerator.swift */; };
+		0000000000000000000000D1 /* ContentReportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0000000000000000000000D0 /* ContentReportService.swift */; };
+		0000000000000000000000D3 /* BlockService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0000000000000000000000D2 /* BlockService.swift */; };
+		0000000000000000000000D5 /* ReportContentSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0000000000000000000000D4 /* ReportContentSheet.swift */; };
+		0000000000000000000000D7 /* CommunityGuidelines.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0000000000000000000000D6 /* CommunityGuidelines.swift */; };
+		0000000000000000000000D9 /* EULAView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0000000000000000000000D8 /* EULAView.swift */; };
+		0000000000000000000000DB /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0000000000000000000000DA /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -66,6 +72,12 @@
 		AAFB0000000000000000000B /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		0000000000000000000000C0 /* ContentModeratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentModeratorTests.swift; sourceTree = "<group>"; };
 		0000000000000000000000C2 /* UCLALibraryHoursTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UCLALibraryHoursTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		0000000000000000000000D0 /* ContentReportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentReportService.swift; sourceTree = "<group>"; };
+		0000000000000000000000D2 /* BlockService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockService.swift; sourceTree = "<group>"; };
+		0000000000000000000000D4 /* ReportContentSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportContentSheet.swift; sourceTree = "<group>"; };
+		0000000000000000000000D6 /* CommunityGuidelines.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityGuidelines.swift; sourceTree = "<group>"; };
+		0000000000000000000000D8 /* EULAView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EULAView.swift; sourceTree = "<group>"; };
+		0000000000000000000000DA /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -150,6 +162,8 @@
 				000000000000000000000019 /* StudySpaceService.swift */,
 				000000000000000000000061 /* FitnessService.swift */,
 				000000000000000000000070 /* ContentModerator.swift */,
+				0000000000000000000000D0 /* ContentReportService.swift */,
+				0000000000000000000000D2 /* BlockService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -171,8 +185,27 @@
 				000000000000000000000056 /* StudySpaces */,
 				000000000000000000000068 /* Fitness */,
 				000000000000000000000057 /* Components */,
+				0000000000000000000000DC /* Onboarding */,
+				0000000000000000000000DD /* Settings */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		0000000000000000000000DC /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				0000000000000000000000D6 /* CommunityGuidelines.swift */,
+				0000000000000000000000D8 /* EULAView.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		0000000000000000000000DD /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				0000000000000000000000DA /* SettingsView.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 		000000000000000000000068 /* Fitness */ = {
@@ -207,6 +240,7 @@
 			isa = PBXGroup;
 			children = (
 				000000000000000000000022 /* SharedComponents.swift */,
+				0000000000000000000000D4 /* ReportContentSheet.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -331,6 +365,12 @@
 				000000000000000000000066 /* FitnessViewModel.swift in Sources */,
 				000000000000000000000067 /* FitnessView.swift in Sources */,
 				000000000000000000000071 /* ContentModerator.swift in Sources */,
+				0000000000000000000000D1 /* ContentReportService.swift in Sources */,
+				0000000000000000000000D3 /* BlockService.swift in Sources */,
+				0000000000000000000000D5 /* ReportContentSheet.swift in Sources */,
+				0000000000000000000000D7 /* CommunityGuidelines.swift in Sources */,
+				0000000000000000000000D9 /* EULAView.swift in Sources */,
+				0000000000000000000000DB /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

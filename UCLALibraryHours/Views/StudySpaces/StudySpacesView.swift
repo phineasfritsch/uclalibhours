@@ -2,10 +2,16 @@ import SwiftUI
 
 struct StudySpacesView: View {
     @EnvironmentObject var vm: StudySpaceViewModel
+    @EnvironmentObject var blockService: BlockService
     @State private var showAddSpace = false
     @State private var tagSheetVisible = false
     @State private var selectedTab = 0        // 0 = Verified, 1 = Community
     @Environment(\.colorScheme) var colorScheme
+
+    // Hide community spaces authored by blocked users. Verified spaces are never hidden.
+    private func filterBlocked(_ list: [StudySpace]) -> [StudySpace] {
+        list.filter { $0.isVerified || !blockService.isBlocked($0.createdByUserID) }
+    }
 
     var body: some View {
         NavigationStack {
@@ -24,9 +30,9 @@ struct StudySpacesView: View {
                         .padding(.vertical, 10)
 
                         if selectedTab == 0 {
-                            spaceList(spaces: vm.filteredVerifiedSpaces, isVerifiedTab: true)
+                            spaceList(spaces: filterBlocked(vm.filteredVerifiedSpaces), isVerifiedTab: true)
                         } else {
-                            spaceList(spaces: vm.filteredCommunitySpaces, isVerifiedTab: false)
+                            spaceList(spaces: filterBlocked(vm.filteredCommunitySpaces), isVerifiedTab: false)
                         }
                     }
                 }

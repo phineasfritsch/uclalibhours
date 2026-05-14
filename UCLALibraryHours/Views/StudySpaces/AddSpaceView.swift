@@ -1,5 +1,4 @@
 import SwiftUI
-import PhotosUI
 
 struct AddSpaceView: View {
     @EnvironmentObject var vm: StudySpaceViewModel
@@ -11,15 +10,10 @@ struct AddSpaceView: View {
     @State private var description = ""
     @State private var selectedTags: Set<SpaceTag> = []
 
-    // Photos
-    @State private var photoPickerItems: [PhotosPickerItem] = []
-    @State private var selectedImages: [UIImage] = []
-
     // Moderation feedback
     @State private var moderationError: String?
     @State private var showModerationAlert = false
 
-    private let maxPhotos = 3
     private let minDescriptionLength = 20
     private let columns = [GridItem(.adaptive(minimum: 130), spacing: 10)]
 
@@ -88,55 +82,6 @@ struct AddSpaceView: View {
                     }
                 }
 
-                Section {
-                    if !selectedImages.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 10) {
-                                ForEach(Array(selectedImages.enumerated()), id: \.offset) { idx, img in
-                                    ZStack(alignment: .topTrailing) {
-                                        Image(uiImage: img)
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: 100, height: 100)
-                                            .clipShape(RoundedRectangle(cornerRadius: 10))
-
-                                        Button {
-                                            selectedImages.remove(at: idx)
-                                            if idx < photoPickerItems.count {
-                                                photoPickerItems.remove(at: idx)
-                                            }
-                                        } label: {
-                                            Image(systemName: "xmark.circle.fill")
-                                                .foregroundStyle(.white, .black.opacity(0.6))
-                                                .font(.title3)
-                                        }
-                                        .offset(x: 6, y: -6)
-                                    }
-                                }
-                            }
-                            .padding(.vertical, 4)
-                        }
-                    }
-
-                    if selectedImages.count < maxPhotos {
-                        PhotosPicker(
-                            selection: $photoPickerItems,
-                            maxSelectionCount: maxPhotos - selectedImages.count,
-                            matching: .images
-                        ) {
-                            Label("Add Photos (\(selectedImages.count)/\(maxPhotos))", systemImage: "photo.badge.plus")
-                        }
-                        .onChange(of: photoPickerItems) { items in
-                            Task { await loadNewPhotos(from: items) }
-                        }
-                    }
-                } header: {
-                    Text("Photos (optional)")
-                } footer: {
-                    Text("Up to \(maxPhotos) photos. Help others find and evaluate the space.")
-                        .font(.caption)
-                }
-
                 Section("Tags") {
                     LazyVGrid(columns: columns, spacing: 10) {
                         ForEach(SpaceTag.allCases) { tag in
@@ -160,6 +105,12 @@ struct AddSpaceView: View {
                         }
                     }
                     .padding(.vertical, 6)
+                }
+
+                Section {
+                    Text("All submissions are screened and may be removed if they violate the Community Guidelines.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
             .navigationTitle("Add Study Space")
@@ -185,7 +136,6 @@ struct AddSpaceView: View {
     // MARK: - Actions
 
     private func addSpace() {
-        // Moderate every text field before any network work.
         let checks: [(String, ModerationConfig, String)] = [
             (name, .spaceName, "Name"),
             (building, .building, "Building"),
@@ -204,46 +154,20 @@ struct AddSpaceView: View {
             sanitized[label] = result.sanitizedText
         }
 
-        Task {
-            // Upload photos to Firebase Storage first, collect download URLs
-            let service = StudySpaceService.shared
-            var photoURLs: [String] = []
-            for img in selectedImages {
-                if let data = img.jpegData(compressionQuality: 1.0),
-                   let url = try? await service.uploadPhoto(imageData: data, userID: vm.userID) {
-                    photoURLs.append(url)
-                }
-            }
-
-            let space = StudySpace(
-                id: UUID().uuidString,
-                name: sanitized["Name"] ?? name,
-                building: sanitized["Building"] ?? building,
-                floor: sanitized["Floor"] ?? floor,
-                description: sanitized["Description"] ?? description,
-                tags: Array(selectedTags),
-                createdAt: Date(),
-                createdByUserID: vm.userID,
-                isVerified: false,
-                photoURLs: photoURLs,
-                submissionStatus: .approved
-            )
-            vm.addSpace(space)
-            dismiss()
-        }
-    }
-
-    @MainActor
-    private func loadNewPhotos(from items: [PhotosPickerItem]) async {
-        var loaded: [UIImage] = []
-        for item in items {
-            if let data = try? await item.loadTransferable(type: Data.self),
-               let image = UIImage(data: data) {
-                loaded.append(image)
-            }
-        }
-        // Merge new picks without duplicating existing ones
-        let combined = selectedImages + loaded
-        selectedImages = Array(combined.prefix(maxPhotos))
+        let space = StudySpace(
+            id: UUID().uuidString,
+            name: sanitized["Name"] ?? name,
+            building: sanitized["Building"] ?? building,
+            floor: sanitized["Floor"] ?? floor,
+            description: sanitized["Description"] ?? description,
+            tags: Array(selectedTags),
+            createdAt: Date(),
+            createdByUserID: vm.userID,
+            isVerified: false,
+            photoURLs: [],
+            submissionStatus: .approved
+        )
+        vm.addSpace(space)
+        dismiss()
     }
 }

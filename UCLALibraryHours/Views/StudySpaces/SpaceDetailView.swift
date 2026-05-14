@@ -2,10 +2,12 @@ import SwiftUI
 
 struct SpaceDetailView: View {
     @EnvironmentObject var vm: StudySpaceViewModel
+    @EnvironmentObject var blockService: BlockService
     let space: StudySpace
 
     @State private var showReport = false
     @State private var showAddReview = false
+    @State private var showReportContent = false
     @State private var reviews: [SpaceReview] = []
     @State private var latestReport: SpaceReport? = nil
 
@@ -13,6 +15,10 @@ struct SpaceDetailView: View {
 
     private var currentSpace: StudySpace {
         vm.spaces.first(where: { $0.id == space.id }) ?? space
+    }
+
+    private var visibleReviews: [SpaceReview] {
+        reviews.filter { !blockService.isBlocked($0.userID) }
     }
 
     private func loadData() {
@@ -29,11 +35,6 @@ struct SpaceDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                // Photo carousel (if photos exist)
-                if !currentSpace.photoURLs.isEmpty {
-                    photoCarousel
-                }
-
                 // Location & description
                 headerSection
 
@@ -58,22 +59,27 @@ struct SpaceDetailView: View {
 
                 Spacer(minLength: 32)
             }
-            .padding(.top, currentSpace.photoURLs.isEmpty ? 16 : 0)
+            .padding(.top, 16)
         }
         .navigationTitle(currentSpace.name)
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                if !currentSpace.isVerified {
-                    Menu {
+                Menu {
+                    if !currentSpace.isVerified {
                         Button(role: .destructive) {
                             if let id = currentSpace.id { vm.deleteSpace(id: id) }
                         } label: {
                             Label("Remove Space", systemImage: "trash")
                         }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
                     }
+                    Button {
+                        showReportContent = true
+                    } label: {
+                        Label("Report Space", systemImage: "flag")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
                 }
             }
         }
@@ -86,31 +92,14 @@ struct SpaceDetailView: View {
             AddReviewView(spaceID: currentSpace.id ?? "")
                 .onDisappear { loadData() }
         }
-    }
-
-    // MARK: - Photo Carousel
-
-    private var photoCarousel: some View {
-        TabView {
-            ForEach(currentSpace.photoURLs, id: \.self) { urlString in
-                AsyncImage(url: URL(string: urlString)) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image.resizable().scaledToFill()
-                    case .failure:
-                        Color(.systemGray5)
-                            .overlay { Image(systemName: "photo").foregroundStyle(.secondary) }
-                    default:
-                        Color(.systemGray5)
-                            .overlay { ProgressView() }
-                    }
-                }
-                .clipped()
-            }
+        .sheet(isPresented: $showReportContent) {
+            ReportContentSheet(
+                contentType: .space,
+                contentID: currentSpace.id ?? "",
+                parentSpaceID: nil,
+                reportedUserID: currentSpace.createdByUserID
+            )
         }
-        .tabViewStyle(.page(indexDisplayMode: currentSpace.photoURLs.count > 1 ? .always : .never))
-        .frame(height: 260)
-        .ignoresSafeArea(edges: .horizontal)
     }
 
     // MARK: - Header
@@ -303,17 +292,19 @@ struct SpaceDetailView: View {
             }
             .padding(.horizontal)
 
-            if reviews.isEmpty {
-                Text("No reviews yet — be the first!")
+            if visibleReviews.isEmpty {
+                Text(reviews.isEmpty
+                     ? "No reviews yet — be the first!"
+                     : "No reviews to show. You may have blocked these contributors.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal)
                     .padding(.vertical, 8)
             } else {
-                let sorted = reviews.sorted { $0.timestamp > $1.timestamp }
+                let sorted = visibleReviews.sorted { $0.timestamp > $1.timestamp }
                 VStack(spacing: 0) {
                     ForEach(sorted) { review in
-                        ReviewRow(review: review)
+                        ReviewRow(review: review, spaceID: currentSpace.id ?? "")
                         if review.id != sorted.last?.id {
                             Divider()
                                 .padding(.leading, 16)
@@ -378,6 +369,11 @@ struct ReportStatItem: View {
 
 struct ReviewRow: View {
     let review: SpaceReview
+    let spaceID: String
+
+    @EnvironmentObject var blockService: BlockService
+    @State private var showReportSheet = false
+    @State private var showBlockConfirm = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -387,6 +383,23 @@ struct ReviewRow: View {
                 Text(review.timeAgo)
                     .font(.caption)
                     .foregroundStyle(.tertiary)
+                Menu {
+                    Button {
+                        showReportSheet = true
+                    } label: {
+                        Label("Report Review", systemImage: "flag")
+                    }
+                    Button(role: .destructive) {
+                        showBlockConfirm = true
+                    } label: {
+                        Label("Block User", systemImage: "hand.raised")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 4)
+                }
             }
             if !review.body.isEmpty {
                 Text(review.body)
@@ -396,6 +409,24 @@ struct ReviewRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+        .sheet(isPresented: $showReportSheet) {
+            ReportContentSheet(
+                contentType: .review,
+                contentID: review.id ?? review.userID,
+                parentSpaceID: spaceID,
+                reportedUserID: review.userID
+            )
+        }
+        .confirmationDialog("Block this user?",
+                            isPresented: $showBlockConfirm,
+                            titleVisibility: .visible) {
+            Button("Block", role: .destructive) {
+                blockService.block(userID: review.userID)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("You won't see their posts or reviews. You can unblock anyone from Settings.")
+        }
     }
 }
 
