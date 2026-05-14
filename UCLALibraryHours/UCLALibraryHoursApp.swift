@@ -6,6 +6,7 @@ import FirebaseCore
 struct UCLALibraryHoursApp: App {
     @StateObject private var hoursViewModel = LibraryHoursViewModel()
     @StateObject private var studySpaceViewModel = StudySpaceViewModel()
+    @StateObject private var fitnessViewModel = FitnessViewModel()
 
     init() {
         FirebaseApp.configure()
@@ -27,6 +28,7 @@ struct UCLALibraryHoursApp: App {
             ContentView()
                 .environmentObject(hoursViewModel)
                 .environmentObject(studySpaceViewModel)
+                .environmentObject(fitnessViewModel)
         }
     }
 }
