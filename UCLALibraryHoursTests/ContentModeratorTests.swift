@@ -234,26 +234,31 @@ final class ContentModeratorTests: XCTestCase {
     // MARK: - Config boundaries
 
     func testNameExactlyAtMaxAllowed() {
-        let name = String(repeating: "a", count: 80)
+        // 80 chars of non-repeating bigram, avoids hitting excessiveRepetition rule
+        let name = String(repeating: "ab", count: 40)
+        XCTAssertEqual(name.count, 80)
         let result = ContentModerator.moderate(name, config: .spaceName)
         XCTAssertTrue(result.allowed, "80 chars should be allowed; reasons: \(result.reasons)")
     }
 
     func testNameOneOverMaxRejected() {
-        let name = String(repeating: "a", count: 81)
+        let name = String(repeating: "ab", count: 40) + "c"
+        XCTAssertEqual(name.count, 81)
         let result = ContentModerator.moderate(name, config: .spaceName)
         XCTAssertFalse(result.allowed)
         XCTAssertTrue(result.reasons.contains(.tooLong))
     }
 
     func testDescriptionExactlyAtMinAllowed() {
-        let text = String(repeating: "a", count: 20)
+        let text = String(repeating: "ab", count: 10) // 20 chars, no consecutive repeats
+        XCTAssertEqual(text.count, 20)
         let result = ContentModerator.moderate(text, config: .description)
-        XCTAssertTrue(result.allowed)
+        XCTAssertTrue(result.allowed, "20 chars should be allowed; reasons: \(result.reasons)")
     }
 
     func testDescriptionOneUnderMinRejected() {
-        let text = String(repeating: "a", count: 19)
+        let text = String(repeating: "ab", count: 9) + "c" // 19 chars
+        XCTAssertEqual(text.count, 19)
         let result = ContentModerator.moderate(text, config: .description)
         XCTAssertFalse(result.allowed)
         XCTAssertTrue(result.reasons.contains(.tooShort))
