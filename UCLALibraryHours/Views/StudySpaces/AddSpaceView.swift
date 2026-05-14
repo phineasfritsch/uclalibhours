@@ -15,6 +15,10 @@ struct AddSpaceView: View {
     @State private var photoPickerItems: [PhotosPickerItem] = []
     @State private var selectedImages: [UIImage] = []
 
+    // Moderation feedback
+    @State private var moderationError: String?
+    @State private var showModerationAlert = false
+
     private let maxPhotos = 3
     private let minDescriptionLength = 20
     private let columns = [GridItem(.adaptive(minimum: 130), spacing: 10)]
@@ -170,12 +174,36 @@ struct AddSpaceView: View {
                         .disabled(!canSubmit || !vm.canSubmit)
                 }
             }
+            .alert("Can't submit", isPresented: $showModerationAlert, presenting: moderationError) { _ in
+                Button("OK", role: .cancel) {}
+            } message: { msg in
+                Text(msg)
+            }
         }
     }
 
     // MARK: - Actions
 
     private func addSpace() {
+        // Moderate every text field before any network work.
+        let checks: [(String, ModerationConfig, String)] = [
+            (name, .spaceName, "Name"),
+            (building, .building, "Building"),
+            (floor, .floor, "Floor"),
+            (description, .description, "Description")
+        ]
+
+        var sanitized: [String: String] = [:]
+        for (raw, config, label) in checks {
+            let result = ContentModerator.moderate(raw, config: config)
+            if !result.allowed {
+                moderationError = "\(label): \(result.userFacingMessage)"
+                showModerationAlert = true
+                return
+            }
+            sanitized[label] = result.sanitizedText
+        }
+
         Task {
             // Upload photos to Firebase Storage first, collect download URLs
             let service = StudySpaceService.shared
@@ -189,10 +217,10 @@ struct AddSpaceView: View {
 
             let space = StudySpace(
                 id: UUID().uuidString,
-                name: name,
-                building: building,
-                floor: floor,
-                description: description,
+                name: sanitized["Name"] ?? name,
+                building: sanitized["Building"] ?? building,
+                floor: sanitized["Floor"] ?? floor,
+                description: sanitized["Description"] ?? description,
                 tags: Array(selectedTags),
                 createdAt: Date(),
                 createdByUserID: vm.userID,

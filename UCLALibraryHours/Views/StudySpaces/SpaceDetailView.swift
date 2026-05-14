@@ -407,6 +407,8 @@ struct AddReviewView: View {
 
     @State private var rating = 3
     @State private var reviewText = ""
+    @State private var moderationError: String?
+    @State private var showModerationAlert = false
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
@@ -455,10 +457,16 @@ struct AddReviewView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Submit") {
                         guard vm.canReview else { return }
+                        let result = ContentModerator.moderate(reviewText, config: .reviewBody)
+                        if !result.allowed {
+                            moderationError = result.userFacingMessage
+                            showModerationAlert = true
+                            return
+                        }
                         let review = SpaceReview(
                             userID: vm.userID,
                             rating: rating,
-                            body: reviewText,
+                            body: result.sanitizedText,
                             timestamp: Date()
                         )
                         vm.submitReview(review, to: spaceID)
@@ -467,6 +475,11 @@ struct AddReviewView: View {
                     .bold()
                     .disabled(!vm.canReview)
                 }
+            }
+            .alert("Can't submit", isPresented: $showModerationAlert, presenting: moderationError) { _ in
+                Button("OK", role: .cancel) {}
+            } message: { msg in
+                Text(msg)
             }
         }
     }

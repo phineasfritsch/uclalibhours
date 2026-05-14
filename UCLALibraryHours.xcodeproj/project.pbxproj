@@ -28,10 +28,13 @@
 		000000000000000000000065 /* FitnessService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000061 /* FitnessService.swift */; };
 		000000000000000000000066 /* FitnessViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000062 /* FitnessViewModel.swift */; };
 		000000000000000000000067 /* FitnessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000063 /* FitnessView.swift */; };
+		000000000000000000000071 /* ContentModerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000070 /* ContentModerator.swift */; };
 		AAFB00000000000000000006 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = AAFB00000000000000000002 /* FirebaseAuth */; };
 		AAFB00000000000000000007 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = AAFB00000000000000000003 /* FirebaseFirestore */; };
 		AAFB00000000000000000009 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = AAFB00000000000000000005 /* FirebaseStorage */; };
 		AAFB0000000000000000000A /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = AAFB0000000000000000000B /* GoogleService-Info.plist */; };
+		0000000000000000000000C1 /* ContentModeratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0000000000000000000000C0 /* ContentModeratorTests.swift */; };
+		0000000000000000000000CC /* ContentModerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000070 /* ContentModerator.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -59,7 +62,10 @@
 		000000000000000000000061 /* FitnessService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessService.swift; sourceTree = "<group>"; };
 		000000000000000000000062 /* FitnessViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessViewModel.swift; sourceTree = "<group>"; };
 		000000000000000000000063 /* FitnessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessView.swift; sourceTree = "<group>"; };
+		000000000000000000000070 /* ContentModerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentModerator.swift; sourceTree = "<group>"; };
 		AAFB0000000000000000000B /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		0000000000000000000000C0 /* ContentModeratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentModeratorTests.swift; sourceTree = "<group>"; };
+		0000000000000000000000C2 /* UCLALibraryHoursTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UCLALibraryHoursTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -73,6 +79,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		0000000000000000000000C6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -80,6 +93,7 @@
 			isa = PBXGroup;
 			children = (
 				000000000000000000000050 /* UCLALibraryHours */,
+				0000000000000000000000C3 /* UCLALibraryHoursTests */,
 				000000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -88,8 +102,17 @@
 			isa = PBXGroup;
 			children = (
 				000000000000000000000010 /* UCLALibraryHours.app */,
+				0000000000000000000000C2 /* UCLALibraryHoursTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		0000000000000000000000C3 /* UCLALibraryHoursTests */ = {
+			isa = PBXGroup;
+			children = (
+				0000000000000000000000C0 /* ContentModeratorTests.swift */,
+			);
+			path = UCLALibraryHoursTests;
 			sourceTree = "<group>";
 		};
 		000000000000000000000050 /* UCLALibraryHours */ = {
@@ -126,6 +149,7 @@
 				000000000000000000000018 /* LibraryHoursService.swift */,
 				000000000000000000000019 /* StudySpaceService.swift */,
 				000000000000000000000061 /* FitnessService.swift */,
+				000000000000000000000070 /* ContentModerator.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -212,6 +236,22 @@
 			productReference = 000000000000000000000010 /* UCLALibraryHours.app */;
 			productType = "com.apple.product-type.application";
 		};
+		0000000000000000000000C4 /* UCLALibraryHoursTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0000000000000000000000CB /* Build configuration list for PBXNativeTarget "UCLALibraryHoursTests" */;
+			buildPhases = (
+				0000000000000000000000C5 /* Sources */,
+				0000000000000000000000C6 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = UCLALibraryHoursTests;
+			productName = UCLALibraryHoursTests;
+			productReference = 0000000000000000000000C2 /* UCLALibraryHoursTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -224,6 +264,10 @@
 				TargetAttributes = {
 					000000000000000000000004 = {
 						CreatedOnToolsVersion = 15.0;
+					};
+					0000000000000000000000C4 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = 000000000000000000000004;
 					};
 				};
 			};
@@ -244,6 +288,7 @@
 			projectRoot = "";
 			targets = (
 				000000000000000000000004 /* UCLALibraryHours */,
+				0000000000000000000000C4 /* UCLALibraryHoursTests */,
 			);
 		};
 /* End PBXProject section */
@@ -285,6 +330,16 @@
 				000000000000000000000065 /* FitnessService.swift in Sources */,
 				000000000000000000000066 /* FitnessViewModel.swift in Sources */,
 				000000000000000000000067 /* FitnessView.swift in Sources */,
+				000000000000000000000071 /* ContentModerator.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0000000000000000000000C5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0000000000000000000000C1 /* ContentModeratorTests.swift in Sources */,
+				0000000000000000000000CC /* ContentModerator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -458,6 +513,50 @@
 			};
 			name = Release;
 		};
+		0000000000000000000000C9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.uclalib.hours.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		0000000000000000000000CA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.uclalib.hours.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -475,6 +574,15 @@
 			buildConfigurations = (
 				000000000000000000000007 /* Debug */,
 				000000000000000000000008 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		0000000000000000000000CB /* Build configuration list for PBXNativeTarget "UCLALibraryHoursTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0000000000000000000000C9 /* Debug */,
+				0000000000000000000000CA /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

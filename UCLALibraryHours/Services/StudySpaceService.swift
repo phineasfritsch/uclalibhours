@@ -53,12 +53,38 @@ final class StudySpaceService {
     // MARK: - Write Space
 
     func addSpace(_ space: StudySpace, skipRateLimit: Bool = false) async throws {
-        let docRef = space.id.map { db.collection("studySpaces").document($0) }
+        // Server-side defense: re-moderate every user-supplied text field.
+        // Verified seed data skips the rate limit AND moderation.
+        let toWrite: StudySpace
+        if skipRateLimit {
+            toWrite = space
+        } else {
+            toWrite = try moderateSpace(space)
+        }
+        let docRef = toWrite.id.map { db.collection("studySpaces").document($0) }
                      ?? db.collection("studySpaces").document()
-        try docRef.setData(from: space)
+        try docRef.setData(from: toWrite)
         if !skipRateLimit {
             try await recordSpaceSubmission()
         }
+    }
+
+    private func moderateSpace(_ space: StudySpace) throws -> StudySpace {
+        let nameResult = ContentModerator.moderate(space.name, config: .spaceName)
+        let buildingResult = ContentModerator.moderate(space.building, config: .building)
+        let floorResult = ContentModerator.moderate(space.floor, config: .floor)
+        let descriptionResult = ContentModerator.moderate(space.description, config: .description)
+
+        for r in [nameResult, buildingResult, floorResult, descriptionResult] where !r.allowed {
+            throw ServiceError.contentRejected(r.userFacingMessage)
+        }
+
+        var sanitized = space
+        sanitized.name = nameResult.sanitizedText
+        sanitized.building = buildingResult.sanitizedText
+        sanitized.floor = floorResult.sanitizedText
+        sanitized.description = descriptionResult.sanitizedText
+        return sanitized
     }
 
     func deleteSpace(id: String) async throws {
@@ -94,11 +120,26 @@ final class StudySpaceService {
         let uid = anonymousUserID
         guard !uid.isEmpty else { throw ServiceError.notSignedIn }
         guard await canSubmitReview() else { throw ServiceError.reviewLimitReached }
+
+        let bodyResult = ContentModerator.moderate(review.body, config: .reviewBody)
+        guard bodyResult.allowed else {
+            throw ServiceError.contentRejected(bodyResult.userFacingMessage)
+        }
+        guard (1...5).contains(review.rating) else {
+            throw ServiceError.contentRejected("Rating must be 1–5.")
+        }
+        let sanitized = SpaceReview(
+            userID: review.userID,
+            rating: review.rating,
+            body: bodyResult.sanitizedText,
+            timestamp: review.timestamp
+        )
+
         try db.collection("studySpaces")
             .document(spaceID)
             .collection("reviews")
             .document(uid)          // UID as doc ID = one review per user at DB level
-            .setData(from: review)
+            .setData(from: sanitized)
         try await recordReviewSubmission()
     }
 
@@ -176,12 +217,14 @@ final class StudySpaceService {
         case notSignedIn
         case invalidImage
         case reviewLimitReached
+        case contentRejected(String)
 
         var errorDescription: String? {
             switch self {
             case .notSignedIn: return "Not signed in. Please restart the app."
             case .invalidImage: return "Could not process the selected image."
             case .reviewLimitReached: return "You've written 3 reviews today. Come back tomorrow."
+            case .contentRejected(let msg): return msg
             }
         }
     }
